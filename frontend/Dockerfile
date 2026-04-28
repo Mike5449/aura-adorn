@@ -1,12 +1,20 @@
 # syntax=docker/dockerfile:1.7
 # ----------------------------------------------------------------
-# Stage 1 — build the Vite app
+# Frontend — TanStack Start app, served as a Node SSR runtime.
+#
+# TanStack Start with the default Nitro preset builds to:
+#   .output/server/index.mjs  → Node entry point
+#   .output/public/           → static assets (no standalone index.html)
+#
+# So we run the bundle with Node. An external nginx (declared in the
+# repo-root docker-compose.yml) handles TLS / domain routing and
+# proxies /api + /media to the backend.
 # ----------------------------------------------------------------
-FROM node:20-alpine AS build
 
+FROM node:20-alpine AS build
 WORKDIR /app
 
-# Native build tools (some Tailwind / lucide deps need them on alpine)
+# Native build deps for some npm packages on Alpine
 RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json* bun.lockb* bunfig.toml* ./
@@ -14,36 +22,30 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
 
-# Public API base URL exposed at build time. By default we use the
-# same-origin path `/api` because nginx proxies it to the backend
-# inside docker-compose. Override with --build-arg if you serve
-# the API on a different host.
+# API base URL injected at build time. Default = same-origin /api,
+# which the front nginx proxy forwards to the backend container.
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 
-# Vite + TanStack Start can output to several places depending on
-# config. We normalise everything into /out so the runtime stage
-# is agnostic.
-RUN set -e; \
-    if [ -d ".output/public" ]; then mv .output/public /out; \
-    elif [ -d "dist/client" ]; then mv dist/client /out; \
-    elif [ -d "dist" ]; then mv dist /out; \
-    else echo "No build output found"; ls -la; exit 1; fi
-
 # ----------------------------------------------------------------
-# Stage 2 — serve static files + proxy /api to backend
+# Runtime — minimal Node image
 # ----------------------------------------------------------------
-FROM nginx:alpine
+FROM node:20-alpine AS runtime
+WORKDIR /app
 
-# Larger uploads (image upload from admin)
-RUN sed -i 's|client_max_body_size .*;|client_max_body_size 10M;|' /etc/nginx/nginx.conf || true
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=3000
 
-COPY --from=build /out /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the built server + public assets
+COPY --from=build /app/.output ./.output
+COPY --from=build /app/package.json ./
 
-EXPOSE 80
+EXPOSE 3000
 
-HEALTHCHECK --interval=15s --timeout=5s --retries=5 \
-    CMD wget --quiet --spider http://localhost/ || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+    CMD wget -q --spider http://localhost:3000/ || exit 1
+
+CMD ["node", ".output/server/index.mjs"]
