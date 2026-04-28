@@ -8,18 +8,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Build deps for psycopg2 + cryptography (slim image)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libpq-dev curl \
+# Install runtime libs (libpq5 — needed by psycopg2 at runtime, curl
+# for the healthcheck) and build deps in one layer. We then install
+# the Python wheels and finally drop the build deps to keep the
+# image small. libpq5 stays so psycopg2 can connect to Postgres.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential libpq-dev libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Drop build deps after install — keep only runtime libs
+# Drop build-time deps but keep libpq5 + curl
 RUN apt-get purge -y --auto-remove build-essential libpq-dev \
-    && apt-get install -y --no-install-recommends libpq5 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean
 
 COPY . .
 
