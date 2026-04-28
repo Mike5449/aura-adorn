@@ -34,10 +34,12 @@ RUN echo "=== dist/client ===" && (test -d dist/client && ls -la dist/client || 
 RUN echo "=== dist/server ===" && (test -d dist/server && ls -la dist/server || echo "(no dist/server)")
 # Try common TanStack Start / Nitro server entry points and symlink to a stable path
 RUN set -e; \
-    if   [ -f dist/server/index.mjs ];   then ln -sf server/index.mjs   dist/_entry.mjs; \
-    elif [ -f dist/server/server.mjs ];  then ln -sf server/server.mjs  dist/_entry.mjs; \
-    elif [ -f dist/server/main.mjs ];    then ln -sf server/main.mjs    dist/_entry.mjs; \
-    elif [ -f .output/server/index.mjs ]; then mv .output dist-output && ln -sf ../dist-output/server/index.mjs dist/_entry.mjs; \
+    if   [ -f dist/server/server.js ];   then ln -sf server/server.js   dist/_entry; \
+    elif [ -f dist/server/index.mjs ];   then ln -sf server/index.mjs   dist/_entry; \
+    elif [ -f dist/server/server.mjs ];  then ln -sf server/server.mjs  dist/_entry; \
+    elif [ -f dist/server/main.mjs ];    then ln -sf server/main.mjs    dist/_entry; \
+    elif [ -f dist/server/index.js ];    then ln -sf server/index.js    dist/_entry; \
+    elif [ -f .output/server/index.mjs ]; then mv .output dist-output && ln -sf ../dist-output/server/index.mjs dist/_entry; \
     else echo "ERROR: no server entry found in dist/server"; ls -la dist/server; exit 1; fi
 
 # ----------------------------------------------------------------
@@ -62,6 +64,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
     CMD wget -q --spider http://localhost:3000/ || exit 1
 
-# `dist/_entry.mjs` is a symlink the build stage points at whichever
-# server entry TanStack Start emitted (index.mjs / server.mjs / main.mjs).
-CMD ["node", "dist/_entry.mjs"]
+# `dist/_entry` is a symlink the build stage points at whichever
+# server entry TanStack Start emitted (server.js, index.mjs, …).
+CMD ["node", "dist/_entry"]
