@@ -18,7 +18,9 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 COPY package.json package-lock.json* bun.lockb* bunfig.toml* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# Use `npm install` (not `npm ci`) so newly-added deps that aren't yet
+# in package-lock.json (e.g. @hono/node-server) install cleanly.
+RUN npm install --no-audit --no-fund --no-progress
 
 COPY . .
 
