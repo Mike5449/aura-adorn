@@ -27,7 +27,12 @@ COPY . .
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
-RUN npm run build
+RUN npm run build \
+    && echo "=== build artifacts ===" \
+    && ls -la \
+    && (test -d .output && ls -la .output) \
+    && (test -f .output/server/index.mjs \
+        || (echo "ERROR: TanStack Start did not emit .output/server/index.mjs"; exit 1))
 
 # ----------------------------------------------------------------
 # Runtime — minimal Node image
