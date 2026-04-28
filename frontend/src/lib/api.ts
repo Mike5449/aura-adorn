@@ -9,9 +9,27 @@ import type {
   ProductStatus,
 } from "./api-types";
 
-const API_BASE: string =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
-  "http://localhost:8000";
+// In the browser we hit `/api/*` and let the edge nginx proxy forward
+// to the backend. During SSR (Node, no `window`), `/api/*` is not a
+// valid URL — we must call the backend directly via the docker-compose
+// network. SSR_API_URL is injected by docker-compose (or defaults to
+// http://backend:8000 inside the cluster).
+function resolveApiBase(): string {
+  if (typeof window === "undefined") {
+    // Server side
+    if (typeof process !== "undefined" && process.env?.SSR_API_URL) {
+      return process.env.SSR_API_URL;
+    }
+    return "http://backend:8000";
+  }
+  // Browser side
+  return (
+    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
+    "/api"
+  );
+}
+
+const API_BASE: string = resolveApiBase();
 
 /**
  * Resolve an image URL stored in the catalog into something the browser can load.

@@ -79,13 +79,16 @@ services:
     build:
       context: ./frontend
       args:
-        # Same-origin call: nginx proxies /api/* to backend.
+        # Same-origin call from the browser: nginx proxies /api/* to backend.
         VITE_API_URL: ${VITE_API_URL:-/api}
     image: carat-couleur-web:latest
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      # SSR-side: Node fetches inside the docker-compose network.
+      SSR_API_URL: http://backend:8000
     # No host port — only the proxy reaches it on the internal network.
     expose:
       - "3000"
