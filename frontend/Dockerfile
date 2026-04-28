@@ -48,7 +48,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    NITRO_HOST=0.0.0.0 \
+    NITRO_PORT=3000
 
 # Copy the built server + client assets and the package.json (in case
 # the server entry resolves dependencies relative to the project root).
