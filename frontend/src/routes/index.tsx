@@ -20,9 +20,9 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Carat & Couleur — Bijoux, Maquillage & Soin de la Peau" },
-      { name: "description", content: "Carat & Couleur : bijoux précieux, maquillage haute pigmentation et soins de la peau. L'art complet de se mettre en valeur." },
-      { property: "og:title", content: "Carat & Couleur — Bijoux & Beauté" },
+      { title: "Beauté & Élégance — Bijoux, Maquillage & Soin de la Peau" },
+      { name: "description", content: "Beauté & Élégance : bijoux précieux, maquillage haute pigmentation et soins de la peau. L'art complet de se mettre en valeur." },
+      { property: "og:title", content: "Beauté & Élégance — Bijoux & Beauté" },
       { property: "og:description", content: "Bijoux, maquillage et soin de la peau de qualité." },
       { property: "og:image", content: hero },
       { name: "twitter:image", content: hero },
@@ -52,7 +52,7 @@ function Index() {
 
         <div className="mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-6 py-24">
           <span className="animate-[fade-in_0.6s_ease-out] text-xs uppercase tracking-[0.4em] text-gold">
-            ◆ Collection Carat &amp; Couleur 2026
+            ◆ Collection Beauté &amp; Élégance 2026
           </span>
           <h1 className="mt-6 max-w-3xl animate-[fade-up_0.7s_cubic-bezier(0.22,1,0.36,1)] font-display text-5xl font-medium leading-[1.05] md:text-7xl lg:text-8xl">
             Élevez Votre Style.<br />
@@ -154,7 +154,7 @@ function Index() {
       <section className="border-y border-border/40 bg-card/40 py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-14 text-center">
-            <span className="text-xs uppercase tracking-[0.4em] text-gold">La Promesse Carat &amp; Couleur</span>
+            <span className="text-xs uppercase tracking-[0.4em] text-gold">La Promesse Beauté &amp; Élégance</span>
             <h2 className="mt-4 font-display text-4xl md:text-5xl">Pourquoi Nous Choisir</h2>
           </div>
           <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
@@ -184,7 +184,7 @@ function Index() {
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {[
-            { name: "Alexandre R.", role: "Port-au-Prince, HT", quote: "La chevalière est exquise — lourde, audacieuse et d'une élégance impossible. Carat & Couleur a redéfini ce qu'est le luxe pour moi." },
+            { name: "Alexandre R.", role: "Port-au-Prince, HT", quote: "La chevalière est exquise — lourde, audacieuse et d'une élégance impossible. Beauté & Élégance a redéfini ce qu'est le luxe pour moi." },
             { name: "Sofia M.", role: "Pétion-Ville, HT", quote: "La palette Noir est la plus pigmentée que j'aie jamais possédée. L'écrin seul est un cadeau qu'on s'offre." },
             { name: "James T.", role: "Cap-Haïtien, HT", quote: "De la chaîne à la montre, chaque pièce est arrivée impeccable. C'est désormais ma référence pour chaque cadeau." },
           ].map((t) => (
@@ -207,7 +207,7 @@ function Index() {
         <div className="relative overflow-hidden border border-gold/30 bg-card px-8 py-20 text-center md:px-16">
           <div className="absolute inset-0 -z-10 opacity-40" style={{ background: "radial-gradient(circle at center, var(--gold) 0%, transparent 60%)" }} />
           <span className="text-xs uppercase tracking-[0.4em] text-gold">Privilèges Membres</span>
-          <h2 className="mt-4 font-display text-4xl md:text-5xl">Rejoignez le Cercle Carat &amp; Couleur</h2>
+          <h2 className="mt-4 font-display text-4xl md:text-5xl">Rejoignez le Cercle Beauté &amp; Élégance</h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">Accès anticipé aux nouveautés, offres privées et livraison express offerte.</p>
           <form className="mx-auto mt-8 flex max-w-md gap-2">
             <input type="email" required placeholder="votre@email.com" className="flex-1 border border-border bg-background px-4 py-3 text-sm focus:border-gold focus:outline-none" />

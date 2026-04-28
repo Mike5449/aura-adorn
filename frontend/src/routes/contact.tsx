@@ -6,13 +6,13 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
-// Coordonnées Carat & Couleur
+// Coordonnées Beauté & Élégance
 // ---------------------------------------------------------------------------
 const PHONE_RAW = "50934705170";              // E.164 sans le « + », pour wa.me
 const PHONE_DISPLAY = "+509 3470 5170";       // affichage humain
 const EMAIL = "ciatech2019@gmail.com";
 const ADDRESS = "Delmas, Port-au-Prince, Haïti";
-const WA_DEFAULT_MESSAGE = "Bonjour Carat & Couleur, j'ai une question.";
+const WA_DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, j'ai une question.";
 
 const waLink = (msg = WA_DEFAULT_MESSAGE) =>
   `https://wa.me/${PHONE_RAW}?text=${encodeURIComponent(msg)}`;
@@ -20,9 +20,9 @@ const waLink = (msg = WA_DEFAULT_MESSAGE) =>
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — Carat & Couleur" },
-      { name: "description", content: "Contactez Carat & Couleur — Delmas, Port-au-Prince. Téléphone, email, WhatsApp." },
-      { property: "og:title", content: "Contact Carat & Couleur" },
+      { title: "Contact — Beauté & Élégance" },
+      { name: "description", content: "Contactez Beauté & Élégance — Delmas, Port-au-Prince. Téléphone, email, WhatsApp." },
+      { property: "og:title", content: "Contact Beauté & Élégance" },
       { property: "og:description", content: "Téléphone, email, WhatsApp — joignez-nous facilement." },
     ],
   }),
@@ -52,7 +52,7 @@ function Contact() {
     const result = schema.safeParse(form);
     if (!result.success) { toast.error(result.error.issues[0].message); return; }
     const msg =
-      `Bonjour Carat & Couleur,%0A%0A` +
+      `Bonjour Beauté & Élégance,%0A%0A` +
       `Nom : ${form.name}%0A` +
       `Email : ${form.email}%0A%0A` +
       `${form.message}`;

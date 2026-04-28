@@ -8,10 +8,10 @@ export default function Footer() {
         <div className="grid gap-12 md:grid-cols-4">
           <div>
             <span className="font-display text-2xl tracking-[0.18em]">
-              CARAT <span className="text-gold">&amp; COULEUR</span>
+              Beauté <span className="text-gold">&amp; Élégance</span>
             </span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Bijoux, maquillage et soin de la peau. Carat pour le précieux, Couleur pour l'éclat — l'art complet de se mettre en valeur.
+              Bijoux, maquillage et soin de la peau. La Beauté pour révéler, l'Élégance pour affirmer — l'art complet de se mettre en valeur.
             </p>
             <div className="mt-6 flex gap-4">
               {[Instagram, Facebook, Twitter].map((Icon, i) => (
@@ -41,7 +41,7 @@ export default function Footer() {
         </div>
         <div className="gold-divider mt-16" />
         <p className="mt-8 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          © {new Date().getFullYear()} Carat &amp; Couleur — Façonné avec élégance
+          © {new Date().getFullYear()} Beauté &amp; Élégance — Façonné avec passion
         </p>
       </div>
     </footer>

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/checkout/success")({
   validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
-      { title: "Commande confirmée — Carat & Couleur" },
+      { title: "Commande confirmée — Beauté & Élégance" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -6,7 +6,7 @@ import { LayoutDashboard, Package, FolderTree, Receipt, LogOut, Loader2 } from "
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Administration — Carat & Couleur" },
+      { title: "Administration — Beauté & Élégance" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -51,7 +51,7 @@ function AdminLayout() {
       <aside className="h-fit border border-border bg-card p-6">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Administration</p>
-          <p className="mt-1 font-display text-xl">Carat &amp; Couleur</p>
+          <p className="mt-1 font-display text-xl">Beauté &amp; Élégance</p>
         </div>
         <div className="gold-divider my-6" />
         <nav className="flex flex-col gap-1">
@@ -93,7 +93,7 @@ function AdminDashboard() {
     <div>
       <h1 className="font-display text-4xl">Tableau de bord</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Bienvenue dans l'espace d'administration Carat & Couleur. Gérez votre catalogue, vos catégories et vos commandes.
+        Bienvenue dans l'espace d'administration Beauté & Élégance. Gérez votre catalogue, vos catégories et vos commandes.
       </p>
       <div className="gold-divider mt-8" />
 

@@ -25,7 +25,7 @@ export default function Header() {
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 whitespace-nowrap">
           <span className="font-display text-lg tracking-[0.18em] text-foreground sm:text-xl md:text-2xl">
-            CARAT <span className="text-gold">&amp; COULEUR</span>
+            Beauté <span className="text-gold">&amp; Élégance</span>
           </span>
         </Link>
 

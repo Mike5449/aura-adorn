@@ -3,7 +3,7 @@ from typing import List
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Carat & Couleur"
+    PROJECT_NAME: str = "Beauté & Élégance"
 
     # Database
     DATABASE_URL: str

@@ -30,9 +30,9 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Carat & Couleur — Bijoux, Maquillage & Soin de la Peau" },
-      { name: "description", content: "Carat pour le précieux, Couleur pour l'éclat. Bijoux, maquillage et soin de la peau — l'art complet de se mettre en valeur." },
-      { property: "og:title", content: "Carat & Couleur — Bijoux & Beauté" },
+      { title: "Beauté & Élégance — Bijoux, Maquillage & Soin de la Peau" },
+      { name: "description", content: "Beauté & Élégance : bijoux précieux, maquillage haute pigmentation et soins de la peau — l'art complet de se mettre en valeur." },
+      { property: "og:title", content: "Beauté & Élégance — Bijoux & Beauté" },
       { property: "og:description", content: "Bijoux, maquillage et soin de la peau de qualité." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

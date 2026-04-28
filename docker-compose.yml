@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------
-# Carat & Couleur — full stack (db + backend + frontend/nginx)
+# Beauté & Élégance — full stack (db + backend + frontend/nginx)
 #
 # Production-ready compose file. Reads its config from .env (copy
 # .env.example to .env and fill it in).

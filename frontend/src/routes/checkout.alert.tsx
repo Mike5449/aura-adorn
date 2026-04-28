@@ -13,7 +13,7 @@ export const Route = createFileRoute("/checkout/alert")({
   validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
-      { title: "Paiement non confirmé — Carat & Couleur" },
+      { title: "Paiement non confirmé — Beauté & Élégance" },
       { name: "robots", content: "noindex" },
     ],
   }),

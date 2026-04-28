@@ -1,4 +1,4 @@
-# Déploiement — Carat & Couleur
+# Déploiement — Beauté & Élégance
 
 Guide pour déployer le stack complet (Postgres + FastAPI + Vite/nginx)
 sur un serveur Linux qui héberge **déjà** un autre site React/Vite.
@@ -60,7 +60,7 @@ docker compose up -d --build
 ```
 
 **Cohabitation avec le site existant** : par défaut le `WEB_PORT=8080`.
-Le serveur expose donc le frontend Carat & Couleur sur `127.0.0.1:8080`,
+Le serveur expose donc le frontend Beauté & Élégance sur `127.0.0.1:8080`,
 **sans toucher** au port 80/443 utilisé par votre site React/Vite actuel.
 
 Vérifiez :

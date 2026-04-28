@@ -24,9 +24,9 @@ export const Route = createFileRoute("/shop")({
   },
   head: () => ({
     meta: [
-      { title: "Boutique — Carat & Couleur" },
+      { title: "Boutique — Beauté & Élégance" },
       { name: "description", content: "Découvrez notre collection complète : bijoux, maquillage et soin de la peau." },
-      { property: "og:title", content: "Boutique — Carat & Couleur" },
+      { property: "og:title", content: "Boutique — Beauté & Élégance" },
       { property: "og:description", content: "Bijoux, maquillage et skincare." },
     ],
   }),

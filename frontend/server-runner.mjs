@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------
-// Carat & Couleur — Node SSR runner
+// Beauté & Élégance — Node SSR runner
 //
 // TanStack Start emits a fetch-style handler at dist/server/server.js
 // (web standards, like Cloudflare/Vercel). We:
@@ -98,7 +98,7 @@ serve(
   { fetch: combinedFetch, port, hostname },
   (info) => {
     console.log(
-      `✔ Carat & Couleur web ready on http://${info.address ?? hostname}:${info.port}`,
+      `✔ Beauté & Élégance web ready on http://${info.address ?? hostname}:${info.port}`,
     );
     console.log(`  static dir: ${CLIENT_DIR}`);
   },

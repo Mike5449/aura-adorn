@@ -17,7 +17,7 @@ import { orderApi, resolveImageUrl } from "@/lib/api";
 export const Route = createFileRoute("/cart")({
   head: () => ({
     meta: [
-      { title: "Mon Panier — Carat & Couleur" },
+      { title: "Mon Panier — Beauté & Élégance" },
       { name: "description", content: "Vérifiez votre sélection et finalisez votre commande." },
     ],
   }),
