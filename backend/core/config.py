@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # CORS — comma-separated origins in .env
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    # Trusted Host header values — comma-separated. Use `*` to disable
+    # the check entirely (acceptable behind a known reverse proxy on a
+    # single-app box; the reverse proxy decides who reaches us).
+    ALLOWED_HOSTS: str = "*"
+
     # Brute-force protection
     MAX_LOGIN_ATTEMPTS: int = 5
     ACCOUNT_LOCKOUT_MINUTES: int = 15
@@ -37,6 +42,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def allowed_hosts_list(self) -> List[str]:
+        return [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
 
     class Config:
         case_sensitive = True

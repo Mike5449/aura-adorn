@@ -167,7 +167,7 @@ app.state.limiter = limiter
 # 1. Trusted hosts — rejects requests with unexpected Host headers
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"],
+    allowed_hosts=settings.allowed_hosts_list,
 )
 
 # 2. CORS
