@@ -33,14 +33,8 @@ RUN echo "=== build artifacts ===" && ls -la
 RUN echo "=== dist/client ===" && (test -d dist/client && ls -la dist/client || echo "(no dist/client)")
 RUN echo "=== dist/server ===" && (test -d dist/server && ls -la dist/server || echo "(no dist/server)")
 # Try common TanStack Start / Nitro server entry points and symlink to a stable path
-RUN set -e; \
-    if   [ -f dist/server/server.js ];   then ln -sf server/server.js   dist/_entry; \
-    elif [ -f dist/server/index.mjs ];   then ln -sf server/index.mjs   dist/_entry; \
-    elif [ -f dist/server/server.mjs ];  then ln -sf server/server.mjs  dist/_entry; \
-    elif [ -f dist/server/main.mjs ];    then ln -sf server/main.mjs    dist/_entry; \
-    elif [ -f dist/server/index.js ];    then ln -sf server/index.js    dist/_entry; \
-    elif [ -f .output/server/index.mjs ]; then mv .output dist-output && ln -sf ../dist-output/server/index.mjs dist/_entry; \
-    else echo "ERROR: no server entry found in dist/server"; ls -la dist/server; exit 1; fi
+RUN test -f dist/server/server.js \
+    || (echo "ERROR: dist/server/server.js missing"; ls -la dist/server; exit 1)
 
 # ----------------------------------------------------------------
 # Runtime — minimal Node image
@@ -54,18 +48,17 @@ ENV NODE_ENV=production \
     NITRO_HOST=0.0.0.0 \
     NITRO_PORT=3000
 
-# Copy the built server + client assets, package.json, and node_modules.
-# TanStack Start emits a Node bundle that keeps several runtime deps
-# (h3, h3-v2, …) external — they need to be resolvable at startup.
+# Copy the built server + client assets, package.json, node_modules,
+# and our small Node runner that wraps the fetch-style server bundle
+# emitted by TanStack Start with @hono/node-server.
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/server-runner.mjs ./
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
     CMD wget -q --spider http://localhost:3000/ || exit 1
 
-# `dist/_entry` is a symlink the build stage points at whichever
-# server entry TanStack Start emitted (server.js, index.mjs, …).
-CMD ["node", "dist/_entry"]
+CMD ["node", "server-runner.mjs"]
