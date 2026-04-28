@@ -30,10 +30,15 @@ ENV VITE_API_URL=$VITE_API_URL
 # Each build step is its own RUN so failures stop on the right line
 RUN npm run build
 RUN echo "=== build artifacts ===" && ls -la
-RUN echo "=== .output ===" && (test -d .output && ls -la .output || echo "(no .output)")
-RUN echo "=== dist ===" && (test -d dist && ls -la dist || echo "(no dist)")
-RUN test -f .output/server/index.mjs \
-    || (echo "ERROR: .output/server/index.mjs missing — check the build output above"; exit 1)
+RUN echo "=== dist/client ===" && (test -d dist/client && ls -la dist/client || echo "(no dist/client)")
+RUN echo "=== dist/server ===" && (test -d dist/server && ls -la dist/server || echo "(no dist/server)")
+# Try common TanStack Start / Nitro server entry points and symlink to a stable path
+RUN set -e; \
+    if   [ -f dist/server/index.mjs ];   then ln -sf server/index.mjs   dist/_entry.mjs; \
+    elif [ -f dist/server/server.mjs ];  then ln -sf server/server.mjs  dist/_entry.mjs; \
+    elif [ -f dist/server/main.mjs ];    then ln -sf server/main.mjs    dist/_entry.mjs; \
+    elif [ -f .output/server/index.mjs ]; then mv .output dist-output && ln -sf ../dist-output/server/index.mjs dist/_entry.mjs; \
+    else echo "ERROR: no server entry found in dist/server"; ls -la dist/server; exit 1; fi
 
 # ----------------------------------------------------------------
 # Runtime — minimal Node image
@@ -45,8 +50,9 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000
 
-# Copy the built server + public assets
-COPY --from=build /app/.output ./.output
+# Copy the built server + client assets and the package.json (in case
+# the server entry resolves dependencies relative to the project root).
+COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 
 EXPOSE 3000
@@ -54,4 +60,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
     CMD wget -q --spider http://localhost:3000/ || exit 1
 
-CMD ["node", ".output/server/index.mjs"]
+# `dist/_entry.mjs` is a symlink the build stage points at whichever
+# server entry TanStack Start emitted (index.mjs / server.mjs / main.mjs).
+CMD ["node", "dist/_entry.mjs"]
