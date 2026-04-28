@@ -1,23 +1,35 @@
 import logging
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-import models.user   # noqa: F401 — register models for create_all
-import models.rbac   # noqa: F401 — register RBAC models for create_all
+import models.user     # noqa: F401 — register models for create_all
+import models.rbac     # noqa: F401 — register RBAC models for create_all
+import models.catalog  # noqa: F401 — register catalog models for create_all
+import models.order    # noqa: F401 — register order/payment models for create_all
 from core.config import settings
 from core.exceptions import BaseAPIException, api_exception_handler
 from core.middleware import SecurityHeadersMiddleware
 from database import Base, SessionLocal, engine
-from routers import auth_router, user_router
+from routers import (
+    auth_router,
+    category_router,
+    media_router,
+    order_router,
+    product_router,
+    user_router,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +89,25 @@ TAGS_METADATA = [
             "| `admin` | Full access |\n"
             "| `manager` | Read, list, update self |\n"
             "| `staff` | Read self, update self |"
+        ),
+    },
+    {
+        "name": "categories",
+        "description": "Catalog categories (jewelry / beauty). Public reads, admin writes.",
+    },
+    {
+        "name": "products",
+        "description": (
+            "Product catalog. Public reads (storefront), admin writes. "
+            "Each product has a `status` (`available` | `coming_soon`) and an optional "
+            "list of `sizes` (used for rings — one row per finger size)."
+        ),
+    },
+    {
+        "name": "orders",
+        "description": (
+            "Customer orders & payments. Guests can checkout. "
+            "Payments use **MonCash** (Digicel mobile money)."
         ),
     },
     {
@@ -176,6 +207,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 app.include_router(user_router.router)
 app.include_router(auth_router.router)
+app.include_router(category_router.router)
+app.include_router(product_router.router)
+app.include_router(order_router.router)
+app.include_router(media_router.router)
+
+# Serve uploaded images
+_uploads_dir = Path(__file__).resolve().parent / "uploads"
+_uploads_dir.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(_uploads_dir)), name="media")
 
 
 # ---------------------------------------------------------------------------

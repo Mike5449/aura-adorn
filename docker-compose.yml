@@ -1,17 +1,94 @@
-version: '3.8'
+# ----------------------------------------------------------------
+# Carat & Couleur — full stack (db + backend + frontend/nginx)
+#
+# Production-ready compose file. Reads its config from .env (copy
+# .env.example to .env and fill it in).
+#
+# IMPORTANT — port binding policy:
+#   The frontend nginx is the only public surface (port 8080 by
+#   default) so the host's existing reverse proxy / Vite site on
+#   :80 / :443 keep working untouched. The host's nginx (or
+#   Caddy / Traefik) just needs to forward boteakelegans.com to
+#   127.0.0.1:${WEB_PORT:-8080}.
+#
+# Quick start:
+#   cp .env.example .env
+#   nano .env             # set SECRET_KEY, REFRESH_SECRET_KEY, etc.
+#   docker compose up -d --build
+#   docker compose exec backend python scripts/seed_admin.py
+#   docker compose exec backend python scripts/seed_catalog.py
+# ----------------------------------------------------------------
 
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: app_base_system
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-carat_couleur}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Bound to localhost only — never exposed to the public network.
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    image: carat-couleur-backend:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-carat_couleur}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      REFRESH_SECRET_KEY: ${REFRESH_SECRET_KEY:?set REFRESH_SECRET_KEY in .env}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://boteakelegans.com}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      ACCOUNT_LOCKOUT_MINUTES: ${ACCOUNT_LOCKOUT_MINUTES:-15}
+      MONCASH_CLIENT_ID: ${MONCASH_CLIENT_ID:-}
+      MONCASH_CLIENT_SECRET: ${MONCASH_CLIENT_SECRET:-}
+      MONCASH_MODE: ${MONCASH_MODE:-sandbox}
+      MONCASH_RETURN_URL: ${MONCASH_RETURN_URL:-https://boteakelegans.com/checkout/return}
+      DELIVERY_FEE_HTG: ${DELIVERY_FEE_HTG:-150}
+      FREE_DELIVERY_THRESHOLD_HTG: ${FREE_DELIVERY_THRESHOLD_HTG:-2500}
+      DELIVERY_CITY_KEYWORD: ${DELIVERY_CITY_KEYWORD:-delmas}
+    volumes:
+      - backend_uploads:/app/uploads
+    # Backend is reached only through the frontend nginx — no host port.
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Same-origin call: nginx proxies /api/* to backend.
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: carat-couleur-web:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
 
 volumes:
   postgres_data:
+  backend_uploads:

@@ -36,6 +36,31 @@ class Permission(str, Enum):
     USERS_CHANGE_ROLE = "users:change_role"   # Assign a role to a user
     USERS_DEACTIVATE  = "users:deactivate"    # Enable / disable a user account
 
+    # Categories
+    CATEGORIES_CREATE = "categories:create"
+    CATEGORIES_READ   = "categories:read"
+    CATEGORIES_LIST   = "categories:list"
+    CATEGORIES_UPDATE = "categories:update"
+    CATEGORIES_DELETE = "categories:delete"
+
+    # Products
+    PRODUCTS_CREATE = "products:create"
+    PRODUCTS_READ   = "products:read"
+    PRODUCTS_LIST   = "products:list"
+    PRODUCTS_UPDATE = "products:update"
+    PRODUCTS_DELETE = "products:delete"
+
+    # Orders
+    ORDERS_CREATE = "orders:create"
+    ORDERS_READ   = "orders:read"
+    ORDERS_LIST   = "orders:list"
+    ORDERS_UPDATE = "orders:update"
+    ORDERS_DELETE = "orders:delete"
+
+    # Payments
+    PAYMENTS_READ = "payments:read"
+    PAYMENTS_LIST = "payments:list"
+
 
 # ---------------------------------------------------------------------------
 # Built-in fallback — used when the DB tables are empty or unreachable
@@ -47,44 +72,84 @@ _BUILTIN_ROLE_PERMISSIONS: Dict[str, Set[str]] = {
         Permission.USERS_READ_SELF.value,
         Permission.USERS_LIST.value,
         Permission.USERS_UPDATE_SELF.value,
+        # catalog: managers can curate but not delete
+        Permission.CATEGORIES_READ.value,
+        Permission.CATEGORIES_LIST.value,
+        Permission.CATEGORIES_UPDATE.value,
+        Permission.PRODUCTS_READ.value,
+        Permission.PRODUCTS_LIST.value,
+        Permission.PRODUCTS_CREATE.value,
+        Permission.PRODUCTS_UPDATE.value,
+        # orders: managers handle fulfilment
+        Permission.ORDERS_READ.value,
+        Permission.ORDERS_LIST.value,
+        Permission.ORDERS_UPDATE.value,
+        Permission.PAYMENTS_READ.value,
+        Permission.PAYMENTS_LIST.value,
     },
     "staff": {
         Permission.USERS_READ_SELF.value,
         Permission.USERS_UPDATE_SELF.value,
+        Permission.CATEGORIES_LIST.value,
+        Permission.CATEGORIES_READ.value,
+        Permission.PRODUCTS_LIST.value,
+        Permission.PRODUCTS_READ.value,
     },
 }
 
 # Seed data for populating the DB (role name → description + permission list)
+_USER_PERMS_DESC = {
+    "users:create":      "Create a new user account",
+    "users:read":        "Read any user profile",
+    "users:read_self":   "Read own profile",
+    "users:list":        "List all users",
+    "users:update":      "Update any user's details",
+    "users:update_self": "Update own email / password",
+    "users:delete":      "Permanently delete a user",
+    "users:change_role": "Assign a role to a user",
+    "users:deactivate":  "Enable or disable a user account",
+}
+_CATALOG_PERMS_DESC = {
+    "categories:create": "Create a new category",
+    "categories:read":   "Read a category",
+    "categories:list":   "List categories",
+    "categories:update": "Update a category",
+    "categories:delete": "Delete a category",
+    "products:create":   "Create a new product",
+    "products:read":     "Read a product",
+    "products:list":     "List products",
+    "products:update":   "Update a product",
+    "products:delete":   "Delete a product",
+}
+_COMMERCE_PERMS_DESC = {
+    "orders:create": "Create an order (checkout)",
+    "orders:read":   "Read any order",
+    "orders:list":   "List orders",
+    "orders:update": "Update order status / fulfilment",
+    "orders:delete": "Delete an order",
+    "payments:read": "Read a payment record",
+    "payments:list": "List payments",
+}
+
+_ALL_PERMS_DESC = {**_USER_PERMS_DESC, **_CATALOG_PERMS_DESC, **_COMMERCE_PERMS_DESC}
+
+
+def _perms_for_role(role: str) -> list[tuple[str, str]]:
+    return [(name, _ALL_PERMS_DESC[name]) for name in sorted(_BUILTIN_ROLE_PERMISSIONS[role])]
+
+
 RBAC_SEED: Dict[str, dict] = {
     "admin": {
         "description": "Full access to all resources",
-        "permissions": [
-            ("users:create",      "Create a new user account"),
-            ("users:read",        "Read any user profile"),
-            ("users:read_self",   "Read own profile"),
-            ("users:list",        "List all users"),
-            ("users:update",      "Update any user's details"),
-            ("users:update_self", "Update own email / password"),
-            ("users:delete",      "Permanently delete a user"),
-            ("users:change_role", "Assign a role to a user"),
-            ("users:deactivate",  "Enable or disable a user account"),
-        ],
+        "permissions": _perms_for_role("admin"),
     },
     "manager": {
-        "description": "Read and list users, update own profile",
-        "permissions": [
-            ("users:read",        "Read any user profile"),
-            ("users:read_self",   "Read own profile"),
-            ("users:list",        "List all users"),
-            ("users:update_self", "Update own email / password"),
-        ],
+        "description": "Read and list users, curate catalog, manage orders, update own profile",
+        "permissions": _perms_for_role("manager"),
     },
     "staff": {
-        "description": "Read and update own profile only",
-        "permissions": [
-            ("users:read_self",   "Read own profile"),
-            ("users:update_self", "Update own email / password"),
-        ],
+        "description": "Read catalog, read and update own profile",
+        "permissions": _perms_for_role("staff"),
     },
 }
 

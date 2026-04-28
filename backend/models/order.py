@@ -1,0 +1,121 @@
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from database import Base
+
+
+ORDER_STATUS_PENDING = "pending"
+ORDER_STATUS_PAID = "paid"
+ORDER_STATUS_SHIPPED = "shipped"
+ORDER_STATUS_DELIVERED = "delivered"
+ORDER_STATUS_CANCELLED = "cancelled"
+
+PAYMENT_STATUS_PENDING = "pending"
+PAYMENT_STATUS_SUCCESS = "success"
+PAYMENT_STATUS_FAILED = "failed"
+
+PAYMENT_METHOD_MONCASH = "moncash"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String(40), unique=True, index=True, nullable=False)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    customer_name = Column(String(150), nullable=False)
+    customer_email = Column(String(255), nullable=False)
+    customer_phone = Column(String(40), nullable=False)
+    customer_address = Column(String(300), nullable=False)
+    customer_city = Column(String(120), nullable=False)
+    notes = Column(Text, nullable=True)
+
+    # Livraison (Delmas uniquement) — délivrable seulement si delivery_requested
+    delivery_requested = Column(Boolean, default=False, nullable=False)
+    delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
+
+    subtotal = Column(Numeric(12, 2), nullable=True)  # avant livraison
+    total_amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(8), default="HTG", nullable=False)
+
+    status = Column(String(20), default=ORDER_STATUS_PENDING, nullable=False)
+    payment_method = Column(String(20), default=PAYMENT_METHOD_MONCASH, nullable=False)
+    payment_status = Column(String(20), default=PAYMENT_STATUS_PENDING, nullable=False)
+    payment_reference = Column(String(120), nullable=True, index=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    items = relationship(
+        "OrderItem",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    payments = relationship(
+        "Payment",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="Payment.created_at.desc()",
+    )
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    product_size_id = Column(Integer, ForeignKey("product_sizes.id", ondelete="SET NULL"), nullable=True)
+
+    product_name = Column(String(200), nullable=False)  # snapshot at time of order
+    size_label = Column(String(20), nullable=True)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)
+
+    order = relationship("Order", back_populates="items")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    method = Column(String(20), default=PAYMENT_METHOD_MONCASH, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(8), default="HTG", nullable=False)
+    status = Column(String(20), default=PAYMENT_STATUS_PENDING, nullable=False)
+
+    transaction_id = Column(String(120), nullable=True, index=True)
+    moncash_order_id = Column(String(120), nullable=True, index=True)
+    payer = Column(String(120), nullable=True)
+    raw_response = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    order = relationship("Order", back_populates="payments")

@@ -98,6 +98,29 @@ async def get_current_active_user(current_user=Depends(get_current_user)):
     return current_user
 
 
+# OAuth2 scheme variant that does not auto-error when the header is missing —
+# used for guest-friendly endpoints (e.g. checkout) that should accept both
+# anonymous and authenticated callers.
+_oauth2_optional = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+
+async def get_current_active_user_optional(
+    token: Optional[str] = Depends(_oauth2_optional),
+    db: Session = Depends(get_db),
+):
+    if not token:
+        return None
+    token_data = _decode_access_token(token)
+    if token_data is None:
+        return None
+    from repositories.user_repository import UserRepository
+
+    user = UserRepository(db).get_user_by_username(username=token_data.username)
+    if user is None or not user.is_active:
+        return None
+    return user
+
+
 def require_role(*roles: str):
     """Factory that returns a dependency enforcing one of the given roles."""
 

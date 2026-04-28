@@ -3,7 +3,7 @@ from typing import List
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "App Base System"
+    PROJECT_NAME: str = "Carat & Couleur"
 
     # Database
     DATABASE_URL: str
@@ -21,6 +21,18 @@ class Settings(BaseSettings):
     # Brute-force protection
     MAX_LOGIN_ATTEMPTS: int = 5
     ACCOUNT_LOCKOUT_MINUTES: int = 15
+
+    # MonCash (Digicel mobile money) — optional; payment endpoints will fail if unset.
+    MONCASH_CLIENT_ID: str = ""
+    MONCASH_CLIENT_SECRET: str = ""
+    MONCASH_MODE: str = "sandbox"  # "sandbox" | "production"
+    MONCASH_RETURN_URL: str = "http://localhost:5173/checkout/return"
+
+    # Delivery (livraison) — Delmas only by default
+    DELIVERY_FEE_HTG: float = 150.0
+    FREE_DELIVERY_THRESHOLD_HTG: float = 2500.0
+    # Substring (case-insensitive) the customer's city must contain to be eligible
+    DELIVERY_CITY_KEYWORD: str = "delmas"
 
     @property
     def cors_origins_list(self) -> List[str]:

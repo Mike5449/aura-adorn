@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.output/
+.cache/
+.vite/
+.wrangler/
+.env
+.env.*
+!.env.example
+*.log
+.git/
+.idea/
+.vscode/
