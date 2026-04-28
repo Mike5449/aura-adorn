@@ -54,10 +54,12 @@ ENV NODE_ENV=production \
     NITRO_HOST=0.0.0.0 \
     NITRO_PORT=3000
 
-# Copy the built server + client assets and the package.json (in case
-# the server entry resolves dependencies relative to the project root).
+# Copy the built server + client assets, package.json, and node_modules.
+# TanStack Start emits a Node bundle that keeps several runtime deps
+# (h3, h3-v2, …) external — they need to be resolvable at startup.
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 3000
 
