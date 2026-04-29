@@ -23,6 +23,7 @@ from models.order import (
 )
 from repositories.catalog_repository import ProductRepository
 from repositories.order_repository import OrderRepository, PaymentRepository
+from repositories.setting_repository import SettingRepository
 from services.moncash_client import MonCashClient, MonCashError
 
 
@@ -79,8 +80,9 @@ class OrderService:
         self,
         status: Optional[str] = None,
         user_id: Optional[int] = None,
+        owner_id: Optional[int] = None,
     ) -> list[Order]:
-        return self.repo.list_all(status=status, user_id=user_id)
+        return self.repo.list_all(status=status, user_id=user_id, owner_id=owner_id)
 
     def get(self, order_id: int) -> Order:
         order = self.repo.get_by_id(order_id)
@@ -106,7 +108,13 @@ class OrderService:
     # ------------------------------------------------------------------
 
     def create(self, data: OrderCreate, user_id: Optional[int] = None) -> Order:
-        items, subtotal = self._build_items_and_total(data.items)
+        # Catalog prices live in USD. We compute the items + subtotal in USD,
+        # then convert to HTG using the active exchange rate. Delivery fee
+        # and the free-delivery threshold remain in HTG (local).
+        items, subtotal_usd = self._build_items_and_total(data.items)
+
+        rate = SettingRepository(self.repo.db).get_exchange_rate()
+        subtotal_htg = (subtotal_usd * rate).quantize(Decimal("0.01"))
 
         delivery_fee = Decimal("0")
         if data.delivery_requested:
@@ -117,9 +125,9 @@ class OrderService:
                         f"{settings.DELIVERY_CITY_KEYWORD.capitalize()}."
                     )
                 )
-            delivery_fee = _compute_delivery_fee(subtotal)
+            delivery_fee = _compute_delivery_fee(subtotal_htg)
 
-        total = subtotal + delivery_fee
+        total_htg = subtotal_htg + delivery_fee
 
         order = Order(
             order_number=_generate_order_number(),
@@ -132,8 +140,10 @@ class OrderService:
             notes=data.notes,
             delivery_requested=data.delivery_requested,
             delivery_fee=delivery_fee,
-            subtotal=subtotal,
-            total_amount=total,
+            subtotal=subtotal_htg,
+            subtotal_usd=subtotal_usd,
+            exchange_rate_used=rate,
+            total_amount=total_htg,
             currency="HTG",
             status=ORDER_STATUS_PENDING,
             payment_method=PAYMENT_METHOD_MONCASH,

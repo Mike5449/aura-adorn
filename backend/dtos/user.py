@@ -1,9 +1,9 @@
 import re
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
 
-VALID_ROLES = {"admin", "manager", "staff"}
+VALID_ROLES = {"super_admin", "admin", "manager", "staff"}
 
 _USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,50}$")
 _HAS_UPPER   = re.compile(r"[A-Z]")
@@ -121,10 +121,38 @@ class UserStatusUpdate(BaseModel):
 # Response
 # ---------------------------------------------------------------------------
 
+class AdminCreate(UserBase):
+    """Used by super_admin to create a scoped admin user."""
+    password: str
+    allowed_category_ids: List[int] = []
+    is_active: bool = True
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return _validate_password(v)
+
+
+class AdminAllowedCategoriesUpdate(BaseModel):
+    """Replace the set of categories an admin can post products to."""
+    allowed_category_ids: List[int]
+
+
+class CategoryRef(BaseModel):
+    """Minimal category info embedded in user responses."""
+    id: int
+    slug: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class UserResponse(UserBase):
     id: int
     is_active: bool
     role: str
+    allowed_categories: List[CategoryRef] = []
 
     class Config:
         from_attributes = True

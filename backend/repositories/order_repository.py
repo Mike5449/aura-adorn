@@ -21,12 +21,26 @@ class OrderRepository:
         self,
         status: Optional[str] = None,
         user_id: Optional[int] = None,
+        owner_id: Optional[int] = None,
     ) -> list[Order]:
+        """
+        owner_id, when set, scopes to orders that contain at least one
+        order_item whose product was created by that user. Used to give
+        admins a view of "their" orders.
+        """
         q = self.db.query(Order)
         if status:
             q = q.filter(Order.status == status)
         if user_id is not None:
             q = q.filter(Order.user_id == user_id)
+        if owner_id is not None:
+            from models.catalog import Product
+            q = (
+                q.join(OrderItem, OrderItem.order_id == Order.id)
+                 .join(Product, Product.id == OrderItem.product_id)
+                 .filter(Product.created_by_user_id == owner_id)
+                 .distinct()
+            )
         return q.order_by(Order.created_at.desc()).all()
 
     # ---------------- Writes ----------------

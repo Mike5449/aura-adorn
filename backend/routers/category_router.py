@@ -26,7 +26,7 @@ def get_category_service(db: Session = Depends(get_db)) -> CategoryService:
     summary="List categories (public)",
 )
 def list_categories(
-    section: Optional[str] = Query(None, description="Filter by section: jewelry | beauty"),
+    section: Optional[str] = Query(None, description="Filter by section: homme | femme"),
     service: CategoryService = Depends(get_category_service),
 ):
     return service.list(section=section)

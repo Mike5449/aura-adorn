@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
-VALID_SECTIONS = {"jewelry", "beauty"}
+VALID_SECTIONS = {"homme", "femme"}
 VALID_PRODUCT_STATUSES = {"available", "coming_soon"}
 _SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -28,6 +28,7 @@ class CategoryBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     section: str
     display_order: int = 0
+    parent_id: Optional[int] = None
 
     @field_validator("slug")
     @classmethod
@@ -51,6 +52,7 @@ class CategoryUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)
     section: Optional[str] = None
     display_order: Optional[int] = None
+    parent_id: Optional[int] = None
 
     @field_validator("slug")
     @classmethod
@@ -102,6 +104,7 @@ class ProductBase(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1)
     price: Decimal = Field(ge=0)
+    purchase_price: Decimal = Field(default=Decimal("0"), ge=0)
     image_url: str = Field(min_length=1, max_length=500)
     category_id: int
     status: str = "available"
@@ -134,6 +137,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, min_length=1)
     price: Optional[Decimal] = Field(default=None, ge=0)
+    purchase_price: Optional[Decimal] = Field(default=None, ge=0)
     image_url: Optional[str] = Field(default=None, min_length=1, max_length=500)
     category_id: Optional[int] = None
     status: Optional[str] = None
@@ -164,6 +168,7 @@ class ProductResponse(BaseModel):
     name: str
     description: str
     price: Decimal
+    purchase_price: Decimal = Decimal("0")
     image_url: str
     category_id: int
     section: str

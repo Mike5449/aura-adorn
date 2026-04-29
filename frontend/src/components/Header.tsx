@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 const nav = [
   { to: "/", label: "Accueil" },
   { to: "/shop", label: "Boutique" },
-  { to: "/shop", label: "Bijoux Homme", search: { section: "jewelry" as const, category: "all" } },
-  { to: "/shop", label: "Beauté", search: { section: "beauty" as const, category: "all" } },
+  { to: "/shop", label: "Homme", search: { section: "homme" as const, group: "all", category: "all" } },
+  { to: "/shop", label: "Femme", search: { section: "femme" as const, group: "all", category: "all" } },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -18,7 +18,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const showAdminLink = user?.role === "admin" || user?.role === "manager";
+  const showAdminLink = ["super_admin", "admin", "manager"].includes(user?.role ?? "");
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl">

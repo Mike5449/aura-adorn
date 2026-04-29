@@ -61,18 +61,60 @@ class Permission(str, Enum):
     PAYMENTS_READ = "payments:read"
     PAYMENTS_LIST = "payments:list"
 
+    # Stocks (admin supplier orders)
+    STOCKS_CREATE = "stocks:create"
+    STOCKS_READ   = "stocks:read"
+    STOCKS_LIST   = "stocks:list"
+    STOCKS_UPDATE = "stocks:update"
+    STOCKS_DELETE = "stocks:delete"
+
+    # System settings (e.g. USD↔HTG exchange rate)
+    SETTINGS_UPDATE = "settings:update"
+
 
 # ---------------------------------------------------------------------------
 # Built-in fallback — used when the DB tables are empty or unreachable
 # ---------------------------------------------------------------------------
 _BUILTIN_ROLE_PERMISSIONS: Dict[str, Set[str]] = {
-    "admin": {p.value for p in Permission},  # admin gets everything
+    # super_admin can do absolutely everything (including managing users
+    # and categories). Only role with full power.
+    "super_admin": {p.value for p in Permission},
+
+    # admin is now scoped: can curate THEIR OWN products inside their
+    # allowed categories, see their related orders, manage their own
+    # stock receipts, but cannot manage users or categories.
+    "admin": {
+        Permission.USERS_READ_SELF.value,
+        Permission.USERS_UPDATE_SELF.value,
+        # Read access on the catalog so the product form can list categories
+        Permission.CATEGORIES_LIST.value,
+        Permission.CATEGORIES_READ.value,
+        # Products — full CRUD but service-layer scopes to created_by
+        Permission.PRODUCTS_CREATE.value,
+        Permission.PRODUCTS_READ.value,
+        Permission.PRODUCTS_LIST.value,
+        Permission.PRODUCTS_UPDATE.value,
+        Permission.PRODUCTS_DELETE.value,
+        # Orders — read-only, scoped at service-level to admin's products
+        Permission.ORDERS_READ.value,
+        Permission.ORDERS_LIST.value,
+        Permission.ORDERS_UPDATE.value,
+        Permission.PAYMENTS_READ.value,
+        Permission.PAYMENTS_LIST.value,
+        # Stocks — full CRUD on the admin's own stock receipts
+        Permission.STOCKS_CREATE.value,
+        Permission.STOCKS_READ.value,
+        Permission.STOCKS_LIST.value,
+        Permission.STOCKS_UPDATE.value,
+        Permission.STOCKS_DELETE.value,
+    },
+
+    # manager (legacy): trimmed catalog editor + user reader
     "manager": {
         Permission.USERS_READ.value,
         Permission.USERS_READ_SELF.value,
         Permission.USERS_LIST.value,
         Permission.USERS_UPDATE_SELF.value,
-        # catalog: managers can curate but not delete
         Permission.CATEGORIES_READ.value,
         Permission.CATEGORIES_LIST.value,
         Permission.CATEGORIES_UPDATE.value,
@@ -80,13 +122,14 @@ _BUILTIN_ROLE_PERMISSIONS: Dict[str, Set[str]] = {
         Permission.PRODUCTS_LIST.value,
         Permission.PRODUCTS_CREATE.value,
         Permission.PRODUCTS_UPDATE.value,
-        # orders: managers handle fulfilment
         Permission.ORDERS_READ.value,
         Permission.ORDERS_LIST.value,
         Permission.ORDERS_UPDATE.value,
         Permission.PAYMENTS_READ.value,
         Permission.PAYMENTS_LIST.value,
     },
+
+    # staff: read-only catalog + own profile
     "staff": {
         Permission.USERS_READ_SELF.value,
         Permission.USERS_UPDATE_SELF.value,
@@ -129,6 +172,12 @@ _COMMERCE_PERMS_DESC = {
     "orders:delete": "Delete an order",
     "payments:read": "Read a payment record",
     "payments:list": "List payments",
+    "stocks:create": "Record a new stock receipt",
+    "stocks:read":   "Read a stock receipt",
+    "stocks:list":   "List stock receipts",
+    "stocks:update": "Update a stock receipt",
+    "stocks:delete": "Delete a stock receipt",
+    "settings:update": "Update system settings (e.g. exchange rate)",
 }
 
 _ALL_PERMS_DESC = {**_USER_PERMS_DESC, **_CATALOG_PERMS_DESC, **_COMMERCE_PERMS_DESC}
@@ -139,8 +188,12 @@ def _perms_for_role(role: str) -> list[tuple[str, str]]:
 
 
 RBAC_SEED: Dict[str, dict] = {
+    "super_admin": {
+        "description": "Owner of the platform — manages users, categories, and the entire catalog",
+        "permissions": _perms_for_role("super_admin"),
+    },
     "admin": {
-        "description": "Full access to all resources",
+        "description": "Curates their own products in assigned categories; sees related orders only",
         "permissions": _perms_for_role("admin"),
     },
     "manager": {

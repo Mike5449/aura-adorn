@@ -28,7 +28,7 @@ function LoginPage() {
     try {
       const me = await login(username, password);
       toast.success("Bienvenue " + me.username);
-      if (me.role === "admin" || me.role === "manager") {
+      if (["super_admin", "admin", "manager"].includes(me.role)) {
         navigate({ to: "/admin" });
       } else {
         navigate({ to: "/" });

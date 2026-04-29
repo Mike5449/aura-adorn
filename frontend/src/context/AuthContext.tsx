@@ -14,7 +14,8 @@ interface AuthCtx {
   user: ApiUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;       // covers super_admin OR admin (anyone in admin space)
   isStaff: boolean;
   login: (username: string, password: string) => Promise<ApiUser>;
   logout: () => void;
@@ -62,8 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       isAuthenticated: !!user,
-      isAdmin: user?.role === "admin",
-      isStaff: user?.role === "admin" || user?.role === "manager" || user?.role === "staff",
+      isSuperAdmin: user?.role === "super_admin",
+      isAdmin: user?.role === "super_admin" || user?.role === "admin",
+      isStaff: ["super_admin", "admin", "manager", "staff"].includes(user?.role ?? ""),
       login,
       logout,
       refresh,

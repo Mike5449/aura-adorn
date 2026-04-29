@@ -1,0 +1,371 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Pencil, Plus, Save, Trash2, X, UserPlus, Power } from "lucide-react";
+import { categoryApi, userApi } from "@/lib/api";
+import type { ApiCategory, ApiUser } from "@/lib/api-types";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/admin/users")({
+  component: AdminUsers,
+});
+
+interface DraftAdmin {
+  id?: number;
+  username: string;
+  email: string;
+  password: string;
+  allowed_category_ids: number[];
+  is_active: boolean;
+}
+
+const blank: DraftAdmin = {
+  username: "",
+  email: "",
+  password: "",
+  allowed_category_ids: [],
+  is_active: true,
+};
+
+function AdminUsers() {
+  const { isSuperAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const [admins, setAdmins] = useState<ApiUser[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<DraftAdmin | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !isSuperAdmin) {
+      toast.error("Accès réservé au super_admin");
+      navigate({ to: "/admin" });
+    }
+  }, [authLoading, isSuperAdmin, navigate]);
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const [a, c] = await Promise.all([userApi.listAdmins(), categoryApi.list()]);
+      setAdmins(a);
+      setCategories(c);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur de chargement");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isSuperAdmin) reload();
+  }, [isSuperAdmin]);
+
+  // A category is "assignable" if products can be attached directly to it:
+  // either a leaf (parent_id != null) OR a top-level group with no children
+  // (e.g. Parfums Homme, Maillot Homme, Bijoux Femme — they hold products
+  // directly until you create sub-categories).
+  const assignableCategories = useMemo(() => {
+    const hasChild = (id: number) => categories.some((c) => c.parent_id === id);
+    return categories
+      .filter((c) => c.parent_id !== null || !hasChild(c.id))
+      .sort((a, b) =>
+        a.section.localeCompare(b.section) ||
+        ((a.parent_id ?? a.id) - (b.parent_id ?? b.id)) ||
+        ((a.parent_id === null ? -1 : 0) - (b.parent_id === null ? -1 : 0)) ||
+        a.display_order - b.display_order,
+      );
+  }, [categories]);
+
+  const submit = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      if (editing.id) {
+        // Update only allowed_categories (creating an admin is full create flow)
+        await userApi.updateAllowedCategories(editing.id, editing.allowed_category_ids);
+        toast.success("Catégories autorisées mises à jour");
+      } else {
+        if (!editing.username || !editing.email || !editing.password) {
+          toast.error("Tous les champs sont requis");
+          setSaving(false);
+          return;
+        }
+        await userApi.createAdmin({
+          username: editing.username.trim(),
+          email: editing.email.trim(),
+          password: editing.password,
+          allowed_category_ids: editing.allowed_category_ids,
+          is_active: editing.is_active,
+        });
+        toast.success("Admin créé");
+      }
+      setEditing(null);
+      reload();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleStatus = async (u: ApiUser) => {
+    try {
+      await userApi.setStatus(u.id, !u.is_active);
+      toast.success(u.is_active ? "Admin désactivé" : "Admin réactivé");
+      reload();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur");
+    }
+  };
+
+  const removeAdmin = async (u: ApiUser) => {
+    if (!confirm(`Supprimer définitivement l'admin « ${u.username} » ?`)) return;
+    try {
+      await userApi.remove(u.id);
+      toast.success("Admin supprimé");
+      reload();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Suppression impossible");
+    }
+  };
+
+  const groupOf = (catId: number) => {
+    const c = categories.find((x) => x.id === catId);
+    if (!c) return "?";
+    if (c.parent_id === null) return c.name;
+    const p = categories.find((x) => x.id === c.parent_id);
+    return p ? p.name : "?";
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Utilisateurs / Admins</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Créez des comptes admin et restreignez leur portée à certaines catégories.
+          </p>
+        </div>
+        <Button variant="luxe" onClick={() => setEditing({ ...blank })}>
+          <UserPlus className="mr-2 h-4 w-4" /> Nouvel admin
+        </Button>
+      </div>
+
+      <div className="gold-divider my-6" />
+
+      {editing && (
+        <div className="mb-6 border border-gold bg-card p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl">
+              {editing.id ? `Modifier admin · ${editing.username}` : "Nouvel admin"}
+            </h2>
+            <button
+              onClick={() => setEditing(null)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Annuler"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {!editing.id && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Identifiant *">
+                <input
+                  value={editing.username}
+                  onChange={(e) => setEditing({ ...editing, username: e.target.value })}
+                  placeholder="ex. emma"
+                  className={input}
+                />
+              </Field>
+              <Field label="Email *">
+                <input
+                  type="email"
+                  value={editing.email}
+                  onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                  placeholder="emma@example.com"
+                  className={input}
+                />
+              </Field>
+              <Field label="Mot de passe *">
+                <input
+                  type="password"
+                  value={editing.password}
+                  onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                  placeholder="8+ caractères : maj, min, chiffre, spécial"
+                  className={input}
+                />
+              </Field>
+              <label className="flex items-end gap-2 pb-2">
+                <input
+                  type="checkbox"
+                  checked={editing.is_active}
+                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                  className="h-4 w-4 accent-gold"
+                />
+                <span className="text-sm">Compte actif dès la création</span>
+              </label>
+            </div>
+          )}
+
+          <h3 className="mt-6 text-xs uppercase tracking-[0.3em] text-gold">
+            Catégories autorisées (où il pourra ajouter des produits)
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Cochez les catégories feuilles. L'admin ne pourra créer / modifier des produits que dans ces catégories.
+          </p>
+          <div className="mt-3 max-h-72 overflow-y-auto border border-border bg-background/40 p-3">
+            {assignableCategories.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Aucune catégorie disponible.</p>
+            ) : (
+              <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {assignableCategories.map((c) => {
+                  const checked = editing.allowed_category_ids.includes(c.id);
+                  const isLeaf = c.parent_id !== null;
+                  const parent = isLeaf ? groupOf(c.id) : null;
+                  return (
+                    <label key={c.id} className="flex cursor-pointer items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            allowed_category_ids: e.target.checked
+                              ? [...editing.allowed_category_ids, c.id]
+                              : editing.allowed_category_ids.filter((id) => id !== c.id),
+                          })
+                        }
+                        className="mt-0.5 h-4 w-4 accent-gold"
+                      />
+                      <span className="leading-tight">
+                        <span className="text-[10px] uppercase tracking-widest text-gold">
+                          {c.section}
+                          {parent && <> · {parent}</>}
+                        </span>
+                        <br />
+                        <span>{c.name}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Button type="button" variant="outlineGold" onClick={() => setEditing(null)}>
+              Annuler
+            </Button>
+            <Button type="button" variant="luxe" disabled={saving} onClick={submit}>
+              {saving
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement…</>
+                : <><Save className="mr-2 h-4 w-4" /> {editing.id ? "Sauvegarder catégories" : "Créer l'admin"}</>}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-gold" />
+        </div>
+      ) : admins.length === 0 ? (
+        <p className="py-16 text-center text-muted-foreground">Aucun admin pour l'instant.</p>
+      ) : (
+        <div className="overflow-hidden border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-card text-left text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <tr>
+                <th className="p-3">Admin</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Catégories autorisées</th>
+                <th className="p-3">Statut</th>
+                <th className="p-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {admins.map((u) => (
+                <tr key={u.id} className="hover:bg-card/40">
+                  <td className="p-3 font-medium">{u.username}</td>
+                  <td className="p-3 text-muted-foreground">{u.email}</td>
+                  <td className="p-3">
+                    {u.allowed_categories.length === 0 ? (
+                      <span className="text-xs text-muted-foreground italic">
+                        aucune (l'admin ne peut rien créer)
+                      </span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {u.allowed_categories.map((c) => (
+                          <span
+                            key={c.id}
+                            className="rounded border border-gold/40 px-2 py-0.5 text-[11px] uppercase tracking-widest text-gold"
+                          >
+                            {c.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <span className={`rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${u.is_active ? "border-emerald-500/40 text-emerald-400" : "border-destructive/40 text-destructive"}`}>
+                      {u.is_active ? "Actif" : "Désactivé"}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() =>
+                          setEditing({
+                            id: u.id,
+                            username: u.username,
+                            email: u.email,
+                            password: "",
+                            allowed_category_ids: u.allowed_categories.map((c) => c.id),
+                            is_active: u.is_active,
+                          })
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
+                        title="Modifier les catégories autorisées"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => toggleStatus(u)}
+                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
+                        title={u.is_active ? "Désactiver" : "Réactiver"}
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => removeAdmin(u)}
+                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-destructive hover:text-destructive"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const input =
+  "w-full border border-border bg-background px-3 py-2 text-sm focus:border-gold focus:outline-none";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}

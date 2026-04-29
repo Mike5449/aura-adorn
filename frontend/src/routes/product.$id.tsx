@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { Minus, Plus, ShieldCheck, Truck, RefreshCw, Hourglass } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { categoryApi, productApi, ApiError, resolveImageUrl } from "@/lib/api";
-import { toProduct } from "@/lib/api-types";
+import { toProduct, formatUsd } from "@/lib/api-types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/product/$id")({
@@ -100,12 +100,10 @@ function ProductPage() {
           <h1 className="mt-3 font-display text-4xl md:text-5xl">{product.name}</h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <p className="text-2xl text-gold">
-              {Number(product.price * qty).toLocaleString("fr-HT")} HTG
-            </p>
+            <p className="text-2xl text-gold">{formatUsd(product.price * qty)}</p>
             {qty > 1 && (
               <span className="text-xs text-muted-foreground">
-                {Number(product.price).toLocaleString("fr-HT")} HTG × {qty}
+                {formatUsd(product.price)} × {qty}
               </span>
             )}
             {comingSoon ? (

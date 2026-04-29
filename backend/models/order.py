@@ -46,9 +46,15 @@ class Order(Base):
     delivery_requested = Column(Boolean, default=False, nullable=False)
     delivery_fee = Column(Numeric(10, 2), default=0, nullable=False)
 
-    subtotal = Column(Numeric(12, 2), nullable=True)  # avant livraison
-    total_amount = Column(Numeric(12, 2), nullable=False)
+    subtotal = Column(Numeric(12, 2), nullable=True)  # avant livraison (HTG)
+    total_amount = Column(Numeric(12, 2), nullable=False)  # HTG
     currency = Column(String(8), default="HTG", nullable=False)
+
+    # Catalog prices are kept in USD; orders store the HTG conversion
+    # using the rate active at checkout time. Keeping it on the order
+    # makes historical receipts accurate even if the rate later moves.
+    exchange_rate_used = Column(Numeric(10, 4), nullable=True)
+    subtotal_usd = Column(Numeric(12, 2), nullable=True)
 
     status = Column(String(20), default=ORDER_STATUS_PENDING, nullable=False)
     payment_method = Column(String(20), default=PAYMENT_METHOD_MONCASH, nullable=False)

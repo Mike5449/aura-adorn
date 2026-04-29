@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import appCss from "../styles.css?url";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -64,6 +65,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <AuthProvider>
+      <SettingsProvider>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
           <Header />
@@ -74,6 +76,7 @@ function RootComponent() {
           <Toaster />
         </div>
       </CartProvider>
+      </SettingsProvider>
     </AuthProvider>
   );
 }

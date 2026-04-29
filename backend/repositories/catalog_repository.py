@@ -69,6 +69,7 @@ class ProductRepository:
         category_id: Optional[int] = None,
         status: Optional[str] = None,
         active_only: bool = False,
+        owner_id: Optional[int] = None,
     ) -> list[Product]:
         q = self.db.query(Product)
         if active_only:
@@ -79,6 +80,8 @@ class ProductRepository:
             q = q.filter(Product.category_id == category_id)
         if status:
             q = q.filter(Product.status == status)
+        if owner_id is not None:
+            q = q.filter(Product.created_by_user_id == owner_id)
         return q.order_by(Product.created_at.desc()).all()
 
     # ---------------- Writes ----------------

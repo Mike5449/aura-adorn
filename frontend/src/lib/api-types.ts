@@ -1,6 +1,6 @@
 // Shapes returned by the backend API. Mirrors backend Pydantic responses.
 
-export type Section = "jewelry" | "beauty";
+export type Section = "homme" | "femme";
 export type ProductStatus = "available" | "coming_soon";
 export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
 export type PaymentStatus = "pending" | "success" | "failed";
@@ -11,6 +11,7 @@ export interface ApiCategory {
   name: string;
   section: Section;
   display_order: number;
+  parent_id: number | null;
 }
 
 export interface ApiProductSize {
@@ -26,6 +27,7 @@ export interface ApiProduct {
   name: string;
   description: string;
   price: string; // Decimal serialized as string
+  purchase_price: string; // Decimal serialized as string — admin-only field
   image_url: string;
   category_id: number;
   section: Section;
@@ -47,6 +49,10 @@ export interface ApiOrderItem {
   unit_price: string;
 }
 
+export interface ApiPublicSettings {
+  exchange_rate_htg_per_usd: string;
+}
+
 export interface ApiOrder {
   id: number;
   order_number: string;
@@ -60,6 +66,8 @@ export interface ApiOrder {
   delivery_requested: boolean;
   delivery_fee: string;
   subtotal: string | null;
+  subtotal_usd: string | null;
+  exchange_rate_used: string | null;
   total_amount: string;
   currency: string;
   status: OrderStatus;
@@ -95,12 +103,36 @@ export interface ApiPaymentInitiate {
   redirect_url: string;
 }
 
+export interface ApiCategoryRef {
+  id: number;
+  slug: string;
+  name: string;
+}
+
 export interface ApiUser {
   id: number;
   username: string;
   email: string;
   is_active: boolean;
-  role: "admin" | "manager" | "staff";
+  role: "super_admin" | "admin" | "manager" | "staff";
+  allowed_categories: ApiCategoryRef[];
+}
+
+// Stock receipts — supplier orders an admin records when goods arrive
+export interface ApiStock {
+  id: number;
+  admin_user_id: number;
+  admin_username: string | null;
+  reference: string | null;
+  order_date: string;            // YYYY-MM-DD
+  arrival_date: string | null;   // YYYY-MM-DD or null
+  total_amount: string;          // Decimal serialized as string
+  shipping_amount: string;
+  quantity: number;
+  currency: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ApiTokens {
@@ -119,6 +151,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  purchasePrice: number;  // cost / prix d'achat — admin only, 0 for public
   image: string;
   section: Section;
   category: string;  // category slug (e.g. "rings")
@@ -139,6 +172,7 @@ export function toProduct(p: ApiProduct, categories?: ApiCategory[]): Product {
     name: p.name,
     description: p.description,
     price: Number(p.price),
+    purchasePrice: Number(p.purchase_price ?? 0),
     image: p.image_url,
     section: p.section,
     category: cat?.slug ?? String(p.category_id),
@@ -156,3 +190,13 @@ export const formatPrice = (n: number, currency = "HTG") =>
   currency === "HTG"
     ? `${n.toLocaleString("fr-HT", { maximumFractionDigits: 2 })} HTG`
     : `${n.toFixed(2)} ${currency}`;
+
+// USD-aware helpers — catalog prices are in USD, displayed with optional ≈ HTG
+export const formatUsd = (n: number) =>
+  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export const formatHtg = (n: number) =>
+  `${n.toLocaleString("fr-HT", { maximumFractionDigits: 0 })} HTG`;
+
+export const usdToHtg = (usd: number, rate: number) =>
+  Math.round(usd * rate);

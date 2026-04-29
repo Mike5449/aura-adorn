@@ -5,6 +5,8 @@ from core.rbac import Permission, require_permission
 from core.security import get_current_active_user
 from database import get_db
 from dtos.user import (
+    AdminAllowedCategoriesUpdate,
+    AdminCreate,
     UserAdminUpdate,
     UserCreate,
     UserResponse,
@@ -28,6 +30,42 @@ _409 = {"description": "Email or username already taken"}
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(UserRepository(db))
+
+
+# ---------------------------------------------------------------------------
+# Admin management — must be declared BEFORE /{user_id} so FastAPI doesn't
+# greedily match "admins" as an integer user id (which would 422).
+# super_admin only.
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/admins",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a scoped admin user (super_admin only)",
+    description=(
+        "**Permission required:** `users:create`\n\n"
+        "Creates an admin who can manage products inside the listed "
+        "`allowed_category_ids`. Pass leaf-category ids."
+    ),
+    responses={401: _401, 403: _403, 409: _409},
+    dependencies=[Depends(require_permission(Permission.USERS_CREATE))],
+)
+def create_admin(
+    data: AdminCreate,
+    service: UserService = Depends(get_user_service),
+):
+    return service.create_admin(data)
+
+
+@router.get(
+    "/admins",
+    response_model=list[UserResponse],
+    summary="List admin users (super_admin)",
+    dependencies=[Depends(require_permission(Permission.USERS_LIST))],
+)
+def list_admins(service: UserService = Depends(get_user_service)):
+    return service.list_admins()
 
 
 # ---------------------------------------------------------------------------
@@ -176,9 +214,9 @@ def change_status(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a user",
     description=(
-        "**Permission required:** `users:delete` (admin only)\n\n"
+        "**Permission required:** `users:delete` (super_admin only)\n\n"
         "Permanently deletes the user record. This action is **irreversible**.\n\n"
-        "An admin cannot delete their own account."
+        "A user cannot delete their own account."
     ),
     responses={204: {"description": "User deleted"}, 401: _401, 403: _403, 404: _404},
 )
@@ -188,3 +226,22 @@ def delete_user(
     service: UserService = Depends(get_user_service),
 ):
     service.delete_user(user_id, requesting_user_id=current_user.id)
+
+
+# ---------------------------------------------------------------------------
+# allowed_categories — modifying scope for an existing admin
+# ---------------------------------------------------------------------------
+
+@router.patch(
+    "/{user_id}/allowed-categories",
+    response_model=UserResponse,
+    summary="Replace the set of allowed categories for an admin (super_admin)",
+    responses={401: _401, 403: _403, 404: _404},
+    dependencies=[Depends(require_permission(Permission.USERS_UPDATE))],
+)
+def update_allowed_categories(
+    user_id: int,
+    data: AdminAllowedCategoriesUpdate,
+    service: UserService = Depends(get_user_service),
+):
+    return service.set_allowed_categories(user_id, data.allowed_category_ids)

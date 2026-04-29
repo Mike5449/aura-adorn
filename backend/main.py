@@ -18,6 +18,8 @@ import models.user     # noqa: F401 — register models for create_all
 import models.rbac     # noqa: F401 — register RBAC models for create_all
 import models.catalog  # noqa: F401 — register catalog models for create_all
 import models.order    # noqa: F401 — register order/payment models for create_all
+import models.stock    # noqa: F401 — register stock receipts table
+import models.setting  # noqa: F401 — register app_settings (e.g. exchange rate)
 from core.config import settings
 from core.exceptions import BaseAPIException, api_exception_handler
 from core.middleware import SecurityHeadersMiddleware
@@ -28,6 +30,8 @@ from routers import (
     media_router,
     order_router,
     product_router,
+    setting_router,
+    stock_router,
     user_router,
 )
 
@@ -93,7 +97,7 @@ TAGS_METADATA = [
     },
     {
         "name": "categories",
-        "description": "Catalog categories (jewelry / beauty). Public reads, admin writes.",
+        "description": "Catalog categories (homme / femme), with optional parent for hierarchy. Public reads, admin writes.",
     },
     {
         "name": "products",
@@ -210,6 +214,8 @@ app.include_router(auth_router.router)
 app.include_router(category_router.router)
 app.include_router(product_router.router)
 app.include_router(order_router.router)
+app.include_router(stock_router.router)
+app.include_router(setting_router.router)
 app.include_router(media_router.router)
 
 # Serve uploaded images

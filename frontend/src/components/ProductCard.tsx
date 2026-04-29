@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Product, formatPrice } from "@/data/products";
+import { Product } from "@/data/products";
+import { formatUsd } from "@/lib/api-types";
 import { useCart } from "@/context/CartContext";
 import { resolveImageUrl } from "@/lib/api";
 import { Hourglass, ShoppingBag, Star } from "lucide-react";
@@ -124,7 +125,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {/* Price + cart icon */}
         <div className="mt-auto flex items-center justify-between gap-3 pt-2">
           <span className="text-base font-semibold text-gold">
-            {formatPrice(product.price)}
+            {formatUsd(product.price)}
           </span>
           <button
             type="button"

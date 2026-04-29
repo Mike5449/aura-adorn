@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ImageUp, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { categoryApi, mediaApi, productApi, resolveImageUrl } from "@/lib/api";
 import type { ApiCategory, ApiProduct, ApiProductSize, ProductStatus } from "@/lib/api-types";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/products/$id")({
@@ -21,6 +22,7 @@ interface FormState {
   name: string;
   description: string;
   price: string;
+  purchase_price: string;
   image_url: string;
   category_id: number | "";
   status: ProductStatus;
@@ -36,6 +38,7 @@ const empty: FormState = {
   name: "",
   description: "",
   price: "0",
+  purchase_price: "0",
   image_url: "",
   category_id: "",
   status: "available",
@@ -52,6 +55,7 @@ function fromApi(p: ApiProduct): FormState {
     name: p.name,
     description: p.description,
     price: String(p.price),
+    purchase_price: String(p.purchase_price ?? "0"),
     image_url: p.image_url,
     category_id: p.category_id,
     status: p.status,
@@ -70,6 +74,7 @@ function fromApi(p: ApiProduct): FormState {
 function AdminProductForm() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
   const isNew = id === "new";
 
   const [form, setForm] = useState<FormState>(empty);
@@ -78,6 +83,13 @@ function AdminProductForm() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // For non-super admins, restrict the category dropdown to their
+  // explicitly-allowed leaf categories.
+  const allowedCategoryIds = useMemo(() => {
+    if (isSuperAdmin || !user) return null; // null = unrestricted
+    return new Set((user.allowed_categories ?? []).map((c) => c.id));
+  }, [isSuperAdmin, user]);
 
   const handleFile = async (file: File | null | undefined) => {
     if (!file) return;
@@ -147,6 +159,7 @@ function AdminProductForm() {
       name: form.name.trim(),
       description: form.description.trim(),
       price: form.price,
+      purchase_price: form.purchase_price || "0",
       image_url: form.image_url.trim(),
       category_id: Number(form.category_id),
       status: form.status,
@@ -243,7 +256,6 @@ function AdminProductForm() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={(e) => {
                   handleFile(e.target.files?.[0]);
@@ -300,7 +312,7 @@ function AdminProductForm() {
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     Glissez-déposez une image ou choisissez un fichier depuis votre
-                    appareil (caméra incluse sur mobile).
+                    appareil. Sur mobile, votre OS proposera la galerie ou la caméra.
                   </p>
                 </div>
               </div>
@@ -385,14 +397,35 @@ function AdminProductForm() {
                 className={input}
               >
                 <option value="">— Choisir —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.section} · {c.name}
-                  </option>
-                ))}
+                {[...categories]
+                  // For non-super admins, only their allowed leaf categories
+                  .filter((c) => allowedCategoryIds === null || allowedCategoryIds.has(c.id))
+                  .sort((a, b) => {
+                    if (a.section !== b.section) return a.section.localeCompare(b.section);
+                    const aRoot = a.parent_id ?? a.id;
+                    const bRoot = b.parent_id ?? b.id;
+                    if (aRoot !== bRoot) return aRoot - bRoot;
+                    return (a.parent_id === null ? -1 : 0) - (b.parent_id === null ? -1 : 0);
+                  })
+                  .map((c) => {
+                    const parent = categories.find((p) => p.id === c.parent_id);
+                    const label = parent
+                      ? `   ↳ ${c.name}` // leaf, indented
+                      : `${c.name}`;     // group
+                    return (
+                      <option key={c.id} value={c.id} disabled={c.parent_id === null && categories.some(x => x.parent_id === c.id)}>
+                        [{c.section}] {label}{parent ? ` (${parent.name})` : " — groupe"}
+                      </option>
+                    );
+                  })}
               </select>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {allowedCategoryIds === null
+                  ? "Choisissez une catégorie feuille (Bagues, Visage…)."
+                  : `Vous voyez uniquement les ${allowedCategoryIds.size} catégorie(s) que le super_admin vous a attribuée(s).`}
+              </p>
             </Field>
-            <Field label="Prix (HTG) *">
+            <Field label="Prix de vente (USD $) *">
               <input
                 type="number"
                 min={0}
@@ -402,6 +435,28 @@ function AdminProductForm() {
                 onChange={(e) => set("price", e.target.value)}
                 className={input}
               />
+            </Field>
+            <Field label="Prix d'achat (USD $)">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.purchase_price}
+                onChange={(e) => set("purchase_price", e.target.value)}
+                placeholder="Coût du produit"
+                className={input}
+              />
+              {Number(form.purchase_price) > 0 && Number(form.price) > 0 && (() => {
+                const margin = Number(form.price) - Number(form.purchase_price);
+                const pct = (margin / Number(form.price)) * 100;
+                return (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Marge : <strong className={margin > 0 ? "text-emerald-400" : "text-destructive"}>
+                      ${margin.toFixed(2)}
+                    </strong> ({pct.toFixed(1)} %)
+                  </p>
+                );
+              })()}
             </Field>
           </Card>
 

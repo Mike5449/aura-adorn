@@ -43,6 +43,58 @@ class UserRepository:
         self.db.refresh(db_user)
         return db_user
 
+    def create_admin(
+        self,
+        *,
+        username: str,
+        email: str,
+        hashed_password: str,
+        allowed_category_ids: list[int],
+        is_active: bool = True,
+    ) -> User:
+        """Create an admin user with a scoped set of allowed categories."""
+        from models.catalog import Category
+
+        db_user = User(
+            username=username,
+            email=email,
+            hashed_password=hashed_password,
+            role="admin",
+            is_active=is_active,
+        )
+        if allowed_category_ids:
+            cats = (
+                self.db.query(Category)
+                .filter(Category.id.in_(allowed_category_ids))
+                .all()
+            )
+            db_user.allowed_categories.extend(cats)
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    def set_allowed_categories(self, user_id: int, category_ids: list[int]) -> Optional[User]:
+        from models.catalog import Category
+
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.allowed_categories.clear()
+        if category_ids:
+            cats = (
+                self.db.query(Category)
+                .filter(Category.id.in_(category_ids))
+                .all()
+            )
+            user.allowed_categories.extend(cats)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def list_admins(self) -> list[User]:
+        return self.db.query(User).filter(User.role == "admin").order_by(User.id).all()
+
     # ------------------------------------------------------------------
     # Update (general — pass only the fields you want to change)
     # ------------------------------------------------------------------

@@ -77,6 +77,8 @@ class OrderResponse(BaseModel):
     delivery_requested: bool = False
     delivery_fee: Decimal = Decimal("0")
     subtotal: Optional[Decimal] = None
+    subtotal_usd: Optional[Decimal] = None
+    exchange_rate_used: Optional[Decimal] = None
     total_amount: Decimal
     currency: str
 

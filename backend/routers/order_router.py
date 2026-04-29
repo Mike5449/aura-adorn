@@ -153,14 +153,19 @@ def get_by_number(
     "/",
     response_model=list[OrderResponse],
     summary="List orders",
-    description="**Permission required:** `orders:list`",
-    dependencies=[Depends(require_permission(Permission.ORDERS_LIST))],
+    description=(
+        "**Permission required:** `orders:list`. "
+        "When called with an `admin` JWT, the list is scoped to orders that "
+        "contain at least one product owned by the admin. super_admin sees all."
+    ),
 )
 def list_orders(
     status_filter: Optional[str] = Query(None, alias="status"),
+    current_user=Depends(require_permission(Permission.ORDERS_LIST)),
     service: OrderService = Depends(get_order_service),
 ):
-    return service.list(status=status_filter)
+    owner_id = current_user.id if current_user.role == "admin" else None
+    return service.list(status=status_filter, owner_id=owner_id)
 
 
 @router.get(

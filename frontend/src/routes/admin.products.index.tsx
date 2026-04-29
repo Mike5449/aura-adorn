@@ -114,7 +114,9 @@ function AdminProductsList() {
               <tr>
                 <th className="p-3">Produit</th>
                 <th className="p-3">Catégorie</th>
-                <th className="p-3">Prix</th>
+                <th className="p-3">Prix vente</th>
+                <th className="p-3">Prix achat</th>
+                <th className="p-3">Marge</th>
                 <th className="p-3">Stock</th>
                 <th className="p-3">État</th>
                 <th className="p-3"></th>
@@ -135,7 +137,27 @@ function AdminProductsList() {
                       </div>
                     </td>
                     <td className="p-3">{cat?.name ?? "—"}</td>
-                    <td className="p-3">{Number(p.price).toLocaleString("fr-HT")} HTG</td>
+                    <td className="p-3">${Number(p.price).toFixed(2)}</td>
+                    <td className="p-3 text-muted-foreground">
+                      {Number(p.purchase_price) > 0
+                        ? `$${Number(p.purchase_price).toFixed(2)}`
+                        : <span className="text-muted-foreground/50">—</span>}
+                    </td>
+                    <td className="p-3">
+                      {(() => {
+                        const cost = Number(p.purchase_price);
+                        const sell = Number(p.price);
+                        if (cost <= 0 || sell <= 0) return <span className="text-muted-foreground/50">—</span>;
+                        const margin = sell - cost;
+                        const pct = (margin / sell) * 100;
+                        return (
+                          <span className={margin > 0 ? "text-emerald-400" : "text-destructive"}>
+                            ${margin.toFixed(2)}
+                            <span className="ml-1 text-[10px] text-muted-foreground">({pct.toFixed(0)} %)</span>
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td className="p-3">
                       {p.has_sizes
                         ? p.sizes.reduce((s, x) => s + x.stock, 0) + " (tailles)"

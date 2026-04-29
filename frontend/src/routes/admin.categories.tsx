@@ -16,9 +16,10 @@ interface DraftCategory {
   name: string;
   section: Section;
   display_order: number;
+  parent_id: number | null;
 }
 
-const blank: DraftCategory = { slug: "", name: "", section: "jewelry", display_order: 0 };
+const blank: DraftCategory = { slug: "", name: "", section: "homme", display_order: 0, parent_id: null };
 
 function AdminCategories() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -50,6 +51,7 @@ function AdminCategories() {
         name: editing.name.trim(),
         section: editing.section,
         display_order: Number(editing.display_order) || 0,
+        parent_id: editing.parent_id ?? null,
       };
       if (editing.id) {
         await categoryApi.update(editing.id, payload);
@@ -127,12 +129,36 @@ function AdminCategories() {
             <Field label="Section *">
               <select
                 value={editing.section}
-                onChange={(e) => setEditing({ ...editing, section: e.target.value as Section })}
+                onChange={(e) => setEditing({ ...editing, section: e.target.value as Section, parent_id: null })}
                 className={input}
               >
-                <option value="jewelry">Bijoux</option>
-                <option value="beauty">Beauté</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
               </select>
+            </Field>
+            <Field label="Catégorie parente (optionnel)">
+              <select
+                value={editing.parent_id ?? ""}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    parent_id: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                className={input}
+              >
+                <option value="">— Top-level (groupe) —</option>
+                {categories
+                  .filter((c) => c.parent_id === null && c.section === editing.section && c.id !== editing.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Laisser vide pour créer un groupe (Bijoux, Parfums, Beauté…). Sinon, choisissez le groupe parent dans la même section.
+              </p>
             </Field>
             <Field label="Ordre d'affichage">
               <input
@@ -166,18 +192,42 @@ function AdminCategories() {
                 <th className="p-3">Nom</th>
                 <th className="p-3">Slug</th>
                 <th className="p-3">Section</th>
+                <th className="p-3">Type</th>
                 <th className="p-3">Ordre</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {categories.map((c) => (
+              {[...categories]
+                .sort((a, b) => {
+                  if (a.section !== b.section) return a.section.localeCompare(b.section);
+                  // Top-level first, then their children
+                  const aRoot = a.parent_id === null ? a.id : a.parent_id!;
+                  const bRoot = b.parent_id === null ? b.id : b.parent_id!;
+                  if (aRoot !== bRoot) return aRoot - bRoot;
+                  if (a.parent_id === null && b.parent_id !== null) return -1;
+                  if (a.parent_id !== null && b.parent_id === null) return 1;
+                  return a.display_order - b.display_order;
+                })
+                .map((c) => {
+                const parent = categories.find((p) => p.id === c.parent_id);
+                const isLeaf = c.parent_id !== null;
+                return (
                 <tr key={c.id} className="hover:bg-card/40">
-                  <td className="p-3 font-medium">{c.name}</td>
+                  <td className="p-3 font-medium">
+                    {isLeaf && <span className="mr-2 text-muted-foreground">↳</span>}
+                    {c.name}
+                    {parent && <span className="ml-2 text-[11px] text-muted-foreground">(dans {parent.name})</span>}
+                  </td>
                   <td className="p-3 text-muted-foreground">/{c.slug}</td>
                   <td className="p-3">
                     <span className="rounded border border-gold/40 px-2 py-0.5 text-[11px] uppercase tracking-widest text-gold">
                       {c.section}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <span className={`rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${isLeaf ? "border-border text-muted-foreground" : "border-emerald-500/40 text-emerald-400"}`}>
+                      {isLeaf ? "Catégorie" : "Groupe"}
                     </span>
                   </td>
                   <td className="p-3">{c.display_order}</td>
@@ -190,6 +240,7 @@ function AdminCategories() {
                           name: c.name,
                           section: c.section,
                           display_order: c.display_order,
+                          parent_id: c.parent_id,
                         })}
                         className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
                         title="Modifier"
@@ -206,7 +257,8 @@ function AdminCategories() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

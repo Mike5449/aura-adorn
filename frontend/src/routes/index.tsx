@@ -33,11 +33,11 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { products } = Route.useLoaderData();
-  const jewelryFeatured = products
-    .filter((p) => p.section === "jewelry" && p.bestseller)
+  const hommeFeatured = products
+    .filter((p) => p.section === "homme" && p.bestseller)
     .slice(0, 4);
-  const beautyFeatured = products
-    .filter((p) => p.section === "beauty" && p.bestseller)
+  const femmeFeatured = products
+    .filter((p) => p.section === "femme" && p.bestseller)
     .slice(0, 4);
 
   return (
@@ -80,13 +80,13 @@ function Index() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {[
-            { img: jewelryImg, title: "Bijoux Homme", sub: "Bagues · Bracelets · Chaînes · Montres · Boucles", section: "jewelry" as const },
-            { img: beautyImg, title: "Stephie Beauty", sub: "Skincare · Maquillage · Kits & Coffrets", section: "beauty" as const },
+            { img: jewelryImg, title: "Homme", sub: "Bijoux · Parfums · Maillots", section: "homme" as const },
+            { img: beautyImg, title: "Femme", sub: "Bijoux · Beauté & Maquillage", section: "femme" as const },
           ].map((c) => (
             <Link
               key={c.section}
               to="/shop"
-              search={{ section: c.section, category: "all" }}
+              search={{ section: c.section, group: "all", category: "all" }}
               className="group relative block aspect-[4/5] overflow-hidden bg-onyx md:aspect-[5/6]"
             >
               <img src={c.img} alt={c.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
@@ -103,49 +103,49 @@ function Index() {
         </div>
       </section>
 
-      {/* BIJOUX HOMME */}
+      {/* HOMME */}
       <section className="border-y border-border/40 bg-card/30 py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-14 flex items-end justify-between gap-6">
             <div>
               <span className="text-xs uppercase tracking-[0.4em] text-gold">Pour Lui</span>
-              <h2 className="mt-4 font-display text-4xl md:text-5xl">Bijoux Homme</h2>
-              <p className="mt-3 max-w-xl text-muted-foreground">Bagues, bracelets, chaînes, montres et boucles d'oreille. Force et raffinement.</p>
+              <h2 className="mt-4 font-display text-4xl md:text-5xl">Homme</h2>
+              <p className="mt-3 max-w-xl text-muted-foreground">Bijoux, parfums et maillots. Force, raffinement et caractère.</p>
             </div>
-            <Link to="/shop" search={{ section: "jewelry", category: "all" }} className="hidden text-xs uppercase tracking-[0.25em] text-gold hover:text-foreground md:inline-block">
+            <Link to="/shop" search={{ section: "homme", group: "all", category: "all" }} className="hidden text-xs uppercase tracking-[0.25em] text-gold hover:text-foreground md:inline-block">
               Voir tout →
             </Link>
           </div>
-          {jewelryFeatured.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">Aucun produit pour le moment. Vérifiez la connexion à l'API.</p>
+          {hommeFeatured.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground">Aucun produit pour le moment.</p>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-4">
-              {jewelryFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
+              {hommeFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
         </div>
       </section>
 
-      {/* STEPHIE BEAUTY */}
+      {/* FEMME */}
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-14 flex items-end justify-between gap-6">
           <div>
-            <span className="text-xs uppercase tracking-[0.4em] text-gold">Stephie Beauty</span>
-            <h2 className="mt-4 font-display text-4xl md:text-5xl">Skincare & Maquillage</h2>
+            <span className="text-xs uppercase tracking-[0.4em] text-gold">Pour Elle</span>
+            <h2 className="mt-4 font-display text-4xl md:text-5xl">Femme</h2>
             <p className="mt-3 max-w-xl text-muted-foreground">
               <span className="italic text-foreground">« Votre peau est votre identité. »</span><br />
-              Soins de la peau et maquillage de qualité, pour révéler votre beauté naturelle et gagner en confiance.
+              Bijoux, soins de la peau et maquillage de qualité, pour révéler votre beauté naturelle et gagner en confiance.
             </p>
           </div>
-          <Link to="/shop" search={{ section: "beauty", category: "all" }} className="hidden text-xs uppercase tracking-[0.25em] text-gold hover:text-foreground md:inline-block">
+          <Link to="/shop" search={{ section: "femme", group: "all", category: "all" }} className="hidden text-xs uppercase tracking-[0.25em] text-gold hover:text-foreground md:inline-block">
             Voir tout →
           </Link>
         </div>
-        {beautyFeatured.length === 0 ? (
+        {femmeFeatured.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">Aucun produit pour le moment.</p>
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-4">
-            {beautyFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
+            {femmeFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>

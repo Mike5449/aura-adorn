@@ -163,16 +163,32 @@ function SuccessPage() {
               <p className="text-muted-foreground">{order.customer_email}</p>
             </div>
 
-            {order.subtotal && Number(order.delivery_fee) > 0 && (
+            {(order.subtotal || order.subtotal_usd) && (
               <div className="mt-4 border-t border-border pt-4 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Sous-total</span>
-                  <span>{Number(order.subtotal).toLocaleString("fr-HT")} {order.currency}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Frais de livraison</span>
-                  <span>{Number(order.delivery_fee).toLocaleString("fr-HT")} {order.currency}</span>
-                </div>
+                {order.subtotal_usd && (
+                  <div className="flex justify-between">
+                    <span>Sous-total catalogue</span>
+                    <span>${Number(order.subtotal_usd).toFixed(2)} USD</span>
+                  </div>
+                )}
+                {order.exchange_rate_used && (
+                  <div className="flex justify-between">
+                    <span>Taux appliqué</span>
+                    <span>1 USD = {Number(order.exchange_rate_used).toLocaleString("fr-HT")} HTG</span>
+                  </div>
+                )}
+                {order.subtotal && (
+                  <div className="flex justify-between">
+                    <span>Sous-total converti</span>
+                    <span>{Number(order.subtotal).toLocaleString("fr-HT")} {order.currency}</span>
+                  </div>
+                )}
+                {Number(order.delivery_fee) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Frais de livraison</span>
+                    <span>{Number(order.delivery_fee).toLocaleString("fr-HT")} {order.currency}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,12 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/data/products";
+import { useSettings } from "@/context/SettingsContext";
 import {
   DELIVERY_CITY,
   DELIVERY_FEE_HTG,
   FREE_DELIVERY_THRESHOLD_HTG,
   computeDeliveryFee,
+  formatHtg,
+  formatUsd,
   isDeliveryEligibleCity,
+  usdToHtg,
 } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2, Loader2, MapPin, Minus, Plus, Smartphone, Truck, X } from "lucide-react";
@@ -44,6 +47,7 @@ const emptyForm: CheckoutForm = {
 
 function CartPage() {
   const { items, setQty, remove, total, clear, keyOf } = useCart();
+  const { exchangeRate } = useSettings();
   const [form, setForm] = useState<CheckoutForm>(emptyForm);
   const [deliveryRequested, setDeliveryRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -55,10 +59,13 @@ function CartPage() {
     () => isDeliveryEligibleCity(form.customer_city),
     [form.customer_city],
   );
-  const deliveryFee = computeDeliveryFee(total, deliveryRequested);
-  const deliveryIsFree = deliveryRequested && total >= FREE_DELIVERY_THRESHOLD_HTG;
-  const finalTotal = total + deliveryFee;
-  const amountToFreeDelivery = Math.max(0, FREE_DELIVERY_THRESHOLD_HTG - total);
+  // `total` is the catalog total in USD (cart stores USD prices).
+  const subtotalUsd = total;
+  const subtotalHtg = usdToHtg(subtotalUsd, exchangeRate);
+  const deliveryFee = computeDeliveryFee(subtotalHtg, deliveryRequested);
+  const deliveryIsFree = deliveryRequested && subtotalHtg >= FREE_DELIVERY_THRESHOLD_HTG;
+  const finalTotalHtg = subtotalHtg + deliveryFee;
+  const amountToFreeDeliveryHtg = Math.max(0, FREE_DELIVERY_THRESHOLD_HTG - subtotalHtg);
 
   const checkout = async () => {
     if (items.length === 0) return;
@@ -160,7 +167,7 @@ function CartPage() {
                         <span className="w-8 text-center text-sm">{qty}</span>
                         <button onClick={() => setQty(k, qty + 1)} className="flex h-9 w-9 items-center justify-center hover:text-gold" aria-label="Augmenter"><Plus className="h-3 w-3" /></button>
                       </div>
-                      <span className="text-gold">{formatPrice(product.price * qty)}</span>
+                      <span className="text-gold">{formatUsd(product.price * qty)}</span>
                     </div>
                   </div>
                 </li>
@@ -179,7 +186,16 @@ function CartPage() {
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Sous-total</span>
-              <span>{formatPrice(total)}</span>
+              <span>
+                {formatUsd(subtotalUsd)}{" "}
+                <span className="text-xs text-muted-foreground/70">
+                  (≈ {formatHtg(subtotalHtg)})
+                </span>
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground/70">
+              <span>Taux du jour</span>
+              <span>1 USD = {exchangeRate.toLocaleString("fr-HT")} HTG</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Livraison</span>
@@ -188,7 +204,7 @@ function CartPage() {
               ) : deliveryIsFree ? (
                 <span className="text-emerald-400">Offerte 🎁</span>
               ) : (
-                <span>{formatPrice(deliveryFee)}</span>
+                <span>{formatHtg(deliveryFee)}</span>
               )}
             </div>
           </div>
@@ -224,7 +240,7 @@ function CartPage() {
                   </p>
                 ) : amountToFreeDelivery > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
-                    Plus que <strong className="text-gold">{formatPrice(amountToFreeDelivery)}</strong> pour bénéficier de la livraison gratuite.
+                    Plus que <strong className="text-gold">{formatHtg(amountToFreeDeliveryHtg)}</strong> pour bénéficier de la livraison gratuite.
                   </p>
                 ) : null}
 
@@ -240,14 +256,22 @@ function CartPage() {
 
           <div className="my-6 border-t border-border pt-6">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-[0.2em]">Total</span>
-              <span className="text-2xl text-gold">{formatPrice(finalTotal)}</span>
+              <span className="text-xs uppercase tracking-[0.2em]">Total à payer</span>
+              <div className="text-right">
+                <span className="block text-2xl text-gold">{formatHtg(finalTotalHtg)}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  ≈ {formatUsd(subtotalUsd + deliveryFee / exchangeRate)}
+                </span>
+              </div>
             </div>
             {deliveryRequested && !deliveryIsFree && deliveryFee > 0 && (
               <p className="mt-1 text-right text-[11px] text-muted-foreground">
-                inclus {formatPrice(deliveryFee)} de livraison
+                inclus {formatHtg(deliveryFee)} de livraison
               </p>
             )}
+            <p className="mt-2 text-[11px] text-muted-foreground italic">
+              Vous payez en HTG via MonCash. Conversion au taux 1 USD = {exchangeRate.toLocaleString("fr-HT")} HTG.
+            </p>
           </div>
 
           <h3 className="mt-2 mb-4 text-xs uppercase tracking-[0.3em] text-gold">Coordonnées de livraison</h3>

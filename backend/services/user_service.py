@@ -1,7 +1,7 @@
 from core.exceptions import ForbiddenException, NotFoundException, UserAlreadyExistsException
 
 from core.security import get_password_hash
-from dtos.user import UserAdminUpdate, UserCreate, UserSelfUpdate
+from dtos.user import AdminCreate, UserAdminUpdate, UserCreate, UserSelfUpdate
 from repositories.user_repository import UserRepository
 
 
@@ -21,6 +21,37 @@ class UserService:
             raise UserAlreadyExistsException(detail="Username already taken")
         hashed_password = get_password_hash(user.password)
         return self.user_repository.create_user(user=user, hashed_password=hashed_password)
+
+    # ------------------------------------------------------------------
+    # Admin management (super_admin only)
+    # ------------------------------------------------------------------
+
+    def create_admin(self, data: AdminCreate):
+        if self.user_repository.get_user_by_email(email=data.email):
+            raise UserAlreadyExistsException(detail="Email already registered")
+        if self.user_repository.get_user_by_username(username=data.username):
+            raise UserAlreadyExistsException(detail="Username already taken")
+        hashed_password = get_password_hash(data.password)
+        return self.user_repository.create_admin(
+            username=data.username,
+            email=data.email,
+            hashed_password=hashed_password,
+            allowed_category_ids=data.allowed_category_ids,
+            is_active=data.is_active,
+        )
+
+    def set_allowed_categories(self, user_id: int, category_ids: list[int]):
+        target = self.user_repository.get_user_by_id(user_id)
+        if not target:
+            raise NotFoundException(detail=f"User {user_id} not found")
+        if target.role not in ("admin",):
+            raise ForbiddenException(
+                detail="Allowed categories can only be set on admin users"
+            )
+        return self.user_repository.set_allowed_categories(user_id, category_ids)
+
+    def list_admins(self):
+        return self.user_repository.list_admins()
 
     # ------------------------------------------------------------------
     # Read

@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { formatPrice } from "@/data/products";
+import { formatUsd } from "@/lib/api-types";
 import { resolveImageUrl } from "@/lib/api";
 
 export default function CartDrawer() {
@@ -40,7 +40,7 @@ export default function CartDrawer() {
                             <X className="h-4 w-4" />
                           </button>
                         </div>
-                        <span className="mt-1 text-xs uppercase tracking-widest text-gold">{formatPrice(product.price)}</span>
+                        <span className="mt-1 text-xs uppercase tracking-widest text-gold">{formatUsd(product.price)}</span>
                         {selectedSizeLabel && (
                           <span className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                             Taille : {selectedSizeLabel}
@@ -65,9 +65,11 @@ export default function CartDrawer() {
             <div className="border-t border-border pt-6">
               <div className="flex items-center justify-between text-sm uppercase tracking-[0.2em]">
                 <span className="text-muted-foreground">Sous-total</span>
-                <span className="text-gold">{formatPrice(total)}</span>
+                <span className="text-gold">{formatUsd(total)}</span>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Livraison & taxes calculées à la commande.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Conversion en gourdes & livraison calculées à la commande.
+              </p>
               <Button variant="luxe" size="xl" className="mt-6 w-full" asChild onClick={() => setOpen(false)}>
                 <Link to="/cart">Commander</Link>
               </Button>

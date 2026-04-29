@@ -22,19 +22,34 @@ from database import SessionLocal
 from models.catalog import Category, Product, ProductSize
 
 
+# Hierarchical catalog:
+#   Section (homme | femme) → Group (top-level, parent_slug=None)
+#                          → Leaf  (parent_slug=<group slug>)
+#
+# Tuple shape: (slug, name, section, display_order, parent_slug)
 CATEGORIES = [
-    # (slug, name, section, display_order)
-    ("rings",     "Bagues",            "jewelry", 10),
-    ("bracelets", "Bracelets",         "jewelry", 20),
-    ("chains",    "Chaînes",           "jewelry", 30),
-    ("watches",   "Montres",           "jewelry", 40),
-    ("earrings",  "Boucles d'Oreille", "jewelry", 50),
-    # Stephie Beauty — skincare & makeup
-    ("face",      "Visage",            "beauty",  10),
-    ("eyes",      "Yeux",              "beauty",  20),
-    ("lips",      "Lèvres",            "beauty",  30),
-    ("tools",     "Accessoires",       "beauty",  40),
-    ("kits",      "Kits & Coffrets",   "beauty",  50),
+    # ============ HOMME ============
+    # Top-level groups
+    ("bijoux-homme",   "Bijoux",           "homme", 10, None),
+    ("parfums-homme",  "Parfums",          "homme", 20, None),
+    ("maillots-homme", "Maillot",          "homme", 30, None),
+    # Bijoux leaves
+    ("rings",     "Bagues",            "homme", 10, "bijoux-homme"),
+    ("bracelets", "Bracelets",         "homme", 20, "bijoux-homme"),
+    ("chains",    "Chaînes",           "homme", 30, "bijoux-homme"),
+    ("watches",   "Montres",           "homme", 40, "bijoux-homme"),
+    ("earrings",  "Boucles d'Oreille", "homme", 50, "bijoux-homme"),
+
+    # ============ FEMME ============
+    # Top-level groups
+    ("bijoux-femme",   "Bijoux",     "femme", 10, None),
+    ("beaute-femme",   "Beauté",     "femme", 20, None),
+    # Beauté leaves (Stephie Beauty)
+    ("face",  "Visage",          "femme", 10, "beaute-femme"),
+    ("eyes",  "Yeux",            "femme", 20, "beaute-femme"),
+    ("lips",  "Lèvres",          "femme", 30, "beaute-femme"),
+    ("tools", "Accessoires",     "femme", 40, "beaute-femme"),
+    ("kits",  "Kits & Coffrets", "femme", 50, "beaute-femme"),
 ]
 
 
@@ -396,18 +411,43 @@ PRODUCTS = [
 
 
 def seed(db) -> None:
-    # 1. Categories
+    # 1. Categories — pass 1: top-level groups (parent=None) so they
+    # get an id we can reference in pass 2 for the leaves.
     cat_by_slug: dict[str, Category] = {}
-    for slug, name, section, display_order in CATEGORIES:
+    for slug, name, section, display_order, parent_slug in CATEGORIES:
         existing = db.query(Category).filter_by(slug=slug).first()
         if existing:
             cat_by_slug[slug] = existing
             continue
+        if parent_slug is not None:
+            continue  # second pass
         cat = Category(slug=slug, name=name, section=section, display_order=display_order)
         db.add(cat)
         db.flush()
         cat_by_slug[slug] = cat
-        print(f"  + category '{slug}' ({section})")
+        print(f"  + group     '{slug}' ({section})")
+
+    # Pass 2: leaf categories with their parent_id set
+    for slug, name, section, display_order, parent_slug in CATEGORIES:
+        if parent_slug is None:
+            continue
+        if slug in cat_by_slug:
+            continue
+        parent = cat_by_slug.get(parent_slug)
+        if not parent:
+            print(f"  ! parent '{parent_slug}' missing for '{slug}', skipped")
+            continue
+        cat = Category(
+            slug=slug,
+            name=name,
+            section=section,
+            display_order=display_order,
+            parent_id=parent.id,
+        )
+        db.add(cat)
+        db.flush()
+        cat_by_slug[slug] = cat
+        print(f"  + leaf      '{slug}' → {parent_slug} ({section})")
 
     # 2. Products
     for p in PRODUCTS:

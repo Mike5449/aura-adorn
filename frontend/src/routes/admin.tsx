@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, Package, FolderTree, Receipt, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, Receipt, LogOut, Loader2, Users, Boxes, Settings as SettingsIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -13,15 +13,26 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const nav = [
-  { to: "/admin", label: "Tableau de bord", Icon: LayoutDashboard, exact: true },
-  { to: "/admin/products", label: "Produits", Icon: Package, exact: false },
-  { to: "/admin/categories", label: "Catégories", Icon: FolderTree, exact: false },
-  { to: "/admin/orders", label: "Commandes", Icon: Receipt, exact: false },
+interface NavItem {
+  to: string;
+  label: string;
+  Icon: typeof LayoutDashboard;
+  exact: boolean;
+  superOnly?: boolean;
+}
+
+const NAV: NavItem[] = [
+  { to: "/admin",            label: "Tableau de bord", Icon: LayoutDashboard, exact: true  },
+  { to: "/admin/products",   label: "Produits",        Icon: Package,         exact: false },
+  { to: "/admin/orders",     label: "Commandes",       Icon: Receipt,         exact: false },
+  { to: "/admin/stocks",     label: "Stocks",          Icon: Boxes,           exact: false },
+  { to: "/admin/categories", label: "Catégories",      Icon: FolderTree,      exact: false, superOnly: true },
+  { to: "/admin/users",      label: "Utilisateurs",    Icon: Users,           exact: false, superOnly: true },
+  { to: "/admin/settings",   label: "Paramètres",      Icon: SettingsIcon,    exact: false, superOnly: true },
 ];
 
 function AdminLayout() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,7 +42,7 @@ function AdminLayout() {
       navigate({ to: "/login" });
       return;
     }
-    if (user.role !== "admin" && user.role !== "manager") {
+    if (!["super_admin", "admin", "manager"].includes(user.role)) {
       navigate({ to: "/" });
     }
   }, [loading, user, navigate]);
@@ -45,17 +56,20 @@ function AdminLayout() {
   }
 
   const isDashboard = location.pathname === "/admin" || location.pathname === "/admin/";
+  const visibleNav = NAV.filter((n) => !n.superOnly || isSuperAdmin);
 
   return (
     <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 lg:grid-cols-[240px_1fr]">
       <aside className="h-fit border border-border bg-card p-6">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Administration</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            {isSuperAdmin ? "Super Admin" : "Administration"}
+          </p>
           <p className="mt-1 font-display text-xl">Beauté &amp; Élégance</p>
         </div>
         <div className="gold-divider my-6" />
         <nav className="flex flex-col gap-1">
-          {nav.map((n) => (
+          {visibleNav.map((n) => (
             <Link
               key={n.to}
               to={n.to}
@@ -89,11 +103,14 @@ function AdminLayout() {
 }
 
 function AdminDashboard() {
+  const { isSuperAdmin, user } = useAuth();
   return (
     <div>
       <h1 className="font-display text-4xl">Tableau de bord</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Bienvenue dans l'espace d'administration Beauté & Élégance. Gérez votre catalogue, vos catégories et vos commandes.
+        {isSuperAdmin
+          ? "Bienvenue Super Admin. Vous gérez toute la plateforme."
+          : `Bienvenue ${user?.username}. Gérez vos produits et suivez vos commandes.`}
       </p>
       <div className="gold-divider mt-8" />
 
@@ -101,16 +118,11 @@ function AdminDashboard() {
         <Link to="/admin/products" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
           <Package className="h-8 w-8 text-gold" />
           <h2 className="mt-4 font-display text-2xl">Produits</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Créer, modifier, marquer comme disponible ou « à venir ».</p>
-          <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
-            Gérer →
-          </span>
-        </Link>
-
-        <Link to="/admin/categories" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
-          <FolderTree className="h-8 w-8 text-gold" />
-          <h2 className="mt-4 font-display text-2xl">Catégories</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Organisez la boutique en sections : bagues, bracelets, beauté…</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isSuperAdmin
+              ? "Tous les produits du catalogue."
+              : "Vos produits — créez, modifiez, marquez disponibles ou à venir."}
+          </p>
           <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
             Gérer →
           </span>
@@ -119,11 +131,54 @@ function AdminDashboard() {
         <Link to="/admin/orders" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
           <Receipt className="h-8 w-8 text-gold" />
           <h2 className="mt-4 font-display text-2xl">Commandes</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Suivez les paiements MonCash et l'expédition des commandes.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isSuperAdmin
+              ? "Toutes les commandes de la plateforme."
+              : "Vos commandes — celles qui contiennent vos produits."}
+          </p>
           <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
             Voir →
           </span>
         </Link>
+
+        <Link to="/admin/stocks" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
+          <Boxes className="h-8 w-8 text-gold" />
+          <h2 className="mt-4 font-display text-2xl">Stocks</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isSuperAdmin
+              ? "Tous les arrivages fournisseur."
+              : "Vos arrivages — coût d'achat, frais de livraison, quantités."}
+          </p>
+          <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
+            Gérer →
+          </span>
+        </Link>
+
+        {isSuperAdmin && (
+          <>
+            <Link to="/admin/categories" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
+              <FolderTree className="h-8 w-8 text-gold" />
+              <h2 className="mt-4 font-display text-2xl">Catégories</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Structure du catalogue — groupes (Bijoux, Beauté…) et catégories feuilles.
+              </p>
+              <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
+                Gérer →
+              </span>
+            </Link>
+
+            <Link to="/admin/users" className="group block border border-border bg-card p-8 transition-colors hover:border-gold">
+              <Users className="h-8 w-8 text-gold" />
+              <h2 className="mt-4 font-display text-2xl">Utilisateurs</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Créez des comptes admin et leur attribuez les catégories qu'ils peuvent administrer.
+              </p>
+              <span className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-gold group-hover:underline">
+                Gérer →
+              </span>
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );

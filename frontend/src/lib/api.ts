@@ -168,6 +168,80 @@ export const authApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Users — admin management (super_admin only)
+// ---------------------------------------------------------------------------
+
+export interface CreateAdminPayload {
+  username: string;
+  email: string;
+  password: string;
+  allowed_category_ids: number[];
+  is_active?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Settings (exchange rate)
+// ---------------------------------------------------------------------------
+
+import type { ApiPublicSettings, ApiStock } from "./api-types";
+
+export const settingsApi = {
+  getPublic: () => apiFetch<ApiPublicSettings>("/settings/public"),
+  updateExchangeRate: (rate: number) =>
+    apiFetch<ApiPublicSettings>("/settings/exchange-rate", {
+      method: "PATCH",
+      body: { rate: String(rate) },
+      auth: true,
+    }),
+};
+
+// ---------------------------------------------------------------------------
+// Stocks (admin supplier orders)
+// ---------------------------------------------------------------------------
+
+export interface CreateStockPayload {
+  reference?: string | null;
+  order_date: string;
+  arrival_date?: string | null;
+  total_amount: string;
+  shipping_amount: string;
+  quantity: number;
+  currency?: string;
+  notes?: string | null;
+}
+
+export const stockApi = {
+  list: () => apiFetch<ApiStock[]>("/stocks/", { auth: true }),
+  get: (id: number) => apiFetch<ApiStock>(`/stocks/${id}`, { auth: true }),
+  create: (data: CreateStockPayload) =>
+    apiFetch<ApiStock>("/stocks/", { method: "POST", body: data, auth: true }),
+  update: (id: number, data: Partial<CreateStockPayload>) =>
+    apiFetch<ApiStock>(`/stocks/${id}`, { method: "PATCH", body: data, auth: true }),
+  remove: (id: number) =>
+    apiFetch<void>(`/stocks/${id}`, { method: "DELETE", auth: true }),
+};
+
+export const userApi = {
+  listAdmins: () => apiFetch<ApiUser[]>("/users/admins", { auth: true }),
+  createAdmin: (data: CreateAdminPayload) =>
+    apiFetch<ApiUser>("/users/admins", { method: "POST", body: data, auth: true }),
+  updateAllowedCategories: (userId: number, categoryIds: number[]) =>
+    apiFetch<ApiUser>(`/users/${userId}/allowed-categories`, {
+      method: "PATCH",
+      body: { allowed_category_ids: categoryIds },
+      auth: true,
+    }),
+  setStatus: (userId: number, isActive: boolean) =>
+    apiFetch<ApiUser>(`/users/${userId}/status`, {
+      method: "PATCH",
+      body: { is_active: isActive },
+      auth: true,
+    }),
+  remove: (userId: number) =>
+    apiFetch<void>(`/users/${userId}`, { method: "DELETE", auth: true }),
+};
+
+// ---------------------------------------------------------------------------
 // Media uploads (admin)
 // ---------------------------------------------------------------------------
 
