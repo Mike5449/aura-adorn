@@ -323,15 +323,15 @@ function AdminProductForm() {
                 </span>
                 <input
                   required
-                  type="url"
+                  type="text"
                   value={form.image_url}
                   onChange={(e) => set("image_url", e.target.value)}
-                  placeholder="https://images.example.com/photo.jpg"
+                  placeholder="https://images.example.com/photo.jpg ou /media/…"
                   className={`${input} mt-1`}
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Collez une URL https://… (Unsplash, votre CDN, etc.) ou laissez le
-                  chemin renseigné automatiquement après un téléversement.
+                  URL https://… (Unsplash, votre CDN…) ou chemin local généré
+                  automatiquement après un téléversement.
                 </p>
               </div>
             </Field>

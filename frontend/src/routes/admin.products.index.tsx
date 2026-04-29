@@ -21,7 +21,7 @@ function AdminProductsList() {
     setLoading(true);
     try {
       const [p, c] = await Promise.all([
-        productApi.list({ active_only: false }),
+        productApi.list({ active_only: false, authed: true }),
         categoryApi.list(),
       ]);
       setProducts(p);

@@ -294,6 +294,10 @@ export interface ProductListParams {
   category_id?: number;
   status?: ProductStatus;
   active_only?: boolean;
+  /** When true, send the JWT so the backend can scope the list to the
+   *  caller's products (admin sees only their own). Default false =
+   *  public storefront. */
+  authed?: boolean;
 }
 
 export const productApi = {
@@ -304,9 +308,12 @@ export const productApi = {
     if (params.status) qs.set("status", params.status);
     if (params.active_only != null) qs.set("active_only", String(params.active_only));
     const q = qs.toString();
-    return apiFetch<ApiProduct[]>(`/products/${q ? `?${q}` : ""}`);
+    return apiFetch<ApiProduct[]>(
+      `/products/${q ? `?${q}` : ""}`,
+      { auth: !!params.authed },
+    );
   },
-  get: (id: number) => apiFetch<ApiProduct>(`/products/${id}`),
+  get: (id: number) => apiFetch<ApiProduct>(`/products/${id}`, { auth: true }),
   getBySlug: (slug: string) => apiFetch<ApiProduct>(`/products/slug/${slug}`),
   create: (data: any) =>
     apiFetch<ApiProduct>("/products/", { method: "POST", body: data, auth: true }),
