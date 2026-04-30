@@ -102,20 +102,20 @@ def resolve_moncash(
     summary="MonCash redirect fallback (public, GET)",
     description=(
         "MonCash sometimes sends the customer's browser to the alertUrl "
-        "(this endpoint) with `?transactionId=...` instead of the returnUrl. "
-        "When that happens we 302 the customer to /checkout/return so the UI "
-        "shows the right page; the corresponding POST webhook fires in parallel."
+        "(this endpoint) instead of the returnUrl. We 302 the customer to "
+        "/checkout/return preserving every query parameter Digicel attached, "
+        "whatever its name (transactionId, transaction_id, data…) — the "
+        "frontend already knows how to extract the txn from any of them."
     ),
 )
-async def moncash_webhook_redirect(transactionId: Optional[str] = Query(None)):
+async def moncash_webhook_redirect(request: Request):
     target_base = (
         settings.MONCASH_RETURN_URL
         or "https://boteakelegans.com/checkout/return"
     ).rstrip("/")
-    if transactionId:
-        target = f"{target_base}?transactionId={transactionId}"
-    else:
-        target = target_base
+    qs = str(request.url.query)
+    target = f"{target_base}?{qs}" if qs else target_base
+    logger.info("MonCash GET redirect (incoming qs=%r) -> %s", qs, target)
     return RedirectResponse(url=target, status_code=302)
 
 
