@@ -6,7 +6,7 @@ Usage (run from the backend/ directory):
 
 Environment variables:
     ADMIN_USERNAME  (default: admin)
-    ADMIN_EMAIL     (default: admin@example.com)
+    ADMIN_EMAIL     (default: admin@boteakelegans.com)
     ADMIN_PASSWORD  (required — no default)
 """
 import os
@@ -19,7 +19,7 @@ from database import SessionLocal
 from models.user import User
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@boteakelegans.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 if not ADMIN_PASSWORD:

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 // ---------------------------------------------------------------------------
 const PHONE_RAW = "50934705170";              // E.164 sans le « + », pour wa.me
 const PHONE_DISPLAY = "+509 3470 5170";       // affichage humain
-const EMAIL = "ciatech2019@gmail.com";
+const EMAIL = "boteakelegans@boteakelegans.com";
 const ADDRESS = "Delmas, Port-au-Prince, Haïti";
 const WA_DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, j'ai une question.";
 
