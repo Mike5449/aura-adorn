@@ -420,6 +420,16 @@ export const orderApi = {
       method: "POST",
       body: { transaction_id: transactionId },
     }),
+  /**
+   * Last-resort recovery: ask the backend to look up the transaction via
+   * MonCash using only our order_number. Used by /checkout/return when
+   * the gateway didn't include a transactionId in the redirect.
+   */
+  recoverMonCash: (orderNumber: string) =>
+    apiFetch<ApiOrder>(
+      `/orders/by-number/${encodeURIComponent(orderNumber)}/pay/moncash/recover`,
+      { method: "POST" },
+    ),
 };
 
 // ---------------------------------------------------------------------------

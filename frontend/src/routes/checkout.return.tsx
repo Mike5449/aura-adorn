@@ -89,6 +89,31 @@ function ReturnPage() {
     const pending = readPendingOrder();
 
     if (!txn) {
+      // No transactionId in the URL. Fall back to the recover endpoint:
+      // ask the backend to look up the transaction via MonCash using our
+      // order_number (kept in localStorage at checkout time).
+      if (pending?.number) {
+        (async () => {
+          try {
+            const order = await orderApi.recoverMonCash(pending.number);
+            clearPendingOrder();
+            if (order.payment_status === "success") {
+              navigate({ to: "/checkout/success", search: { order: order.order_number } });
+            } else {
+              navigate({
+                to: "/checkout/alert",
+                search: { reason: "invalid_transaction", order: order.order_number },
+              });
+            }
+          } catch (e: any) {
+            navigate({
+              to: "/checkout/alert",
+              search: { reason: e?.message ?? "missing_params", order: pending.number },
+            });
+          }
+        })();
+        return;
+      }
       navigate({ to: "/checkout/alert", search: { reason: "missing_params", order: "" } });
       return;
     }

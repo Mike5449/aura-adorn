@@ -304,6 +304,36 @@ class OrderService:
 
         return self._apply_verification(order, transaction_id, data)
 
+    def recover_moncash_by_order_number(self, order_number: str) -> Order:
+        """
+        Last-resort recovery path: the customer was redirected back without
+        any `transactionId` in the URL (Digicel sometimes drops it). We have
+        the order_number stashed locally — ask MonCash directly via
+        RetrieveOrderPayment to look up the transaction and finalise.
+        """
+        order = self.repo.get_by_order_number(order_number)
+        if not order:
+            raise NotFoundException(detail=f"Order '{order_number}' not found")
+
+        try:
+            data = self.moncash.retrieve_order(order_number)
+        except MonCashError as exc:
+            raise BaseAPIException(detail=str(exc))
+
+        payment_obj = data.get("payment", data) or {}
+        transaction_id = (
+            payment_obj.get("transaction_id")
+            or payment_obj.get("transactionId")
+        )
+        if not transaction_id:
+            # MonCash knows about no settled transaction for this order yet —
+            # the customer probably abandoned the payment. Leave order pending.
+            raise NotFoundException(
+                detail="Aucune transaction MonCash trouvée pour cette commande."
+            )
+
+        return self._apply_verification(order, str(transaction_id), data)
+
     def verify_moncash_payment(self, order_id: int, transaction_id: str) -> Order:
         """
         Same as `resolve_moncash_payment` but constrained to a known

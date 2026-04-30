@@ -80,6 +80,25 @@ def verify_moncash(
 
 
 @router.post(
+    "/by-number/{order_number}/pay/moncash/recover",
+    response_model=OrderResponse,
+    summary="Recover a MonCash payment when the customer returns without a transactionId (public)",
+    description=(
+        "Last-resort recovery path used by /checkout/return when MonCash "
+        "redirects the customer back with no query string. We look up the "
+        "transaction directly via MonCash RetrieveOrderPayment using the "
+        "order_number we kept in the customer's localStorage at checkout "
+        "time, then finalise the order normally."
+    ),
+)
+def recover_moncash(
+    order_number: str,
+    service: OrderService = Depends(get_order_service),
+):
+    return service.recover_moncash_by_order_number(order_number)
+
+
+@router.post(
     "/pay/moncash/resolve",
     response_model=OrderResponse,
     summary="Resolve a MonCash payment from its transactionId only (public)",
