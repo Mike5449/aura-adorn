@@ -71,16 +71,29 @@ class UserService:
     # ------------------------------------------------------------------
 
     def update_self(self, current_user_id: int, data: UserSelfUpdate):
+        from core.exceptions import UnauthorizedException
+        from core.security import verify_password
+
+        me = self.user_repository.get_user_by_id(current_user_id)
+        if not me:
+            raise NotFoundException(detail="User not found")
+
         fields = {}
-        if data.email is not None:
+        if data.email is not None and data.email != me.email:
             existing = self.user_repository.get_user_by_email(data.email)
             if existing and existing.id != current_user_id:
                 raise UserAlreadyExistsException(detail="Email already in use")
             fields["email"] = data.email
         if data.password is not None:
+            # Block silent password swaps via stolen sessions: the caller must
+            # prove they know the current password before we accept the new one.
+            if not data.current_password or not verify_password(
+                data.current_password, me.hashed_password
+            ):
+                raise UnauthorizedException(detail="Mot de passe actuel incorrect")
             fields["hashed_password"] = get_password_hash(data.password)
         if not fields:
-            return self.user_repository.get_user_by_id(current_user_id)
+            return me
         user = self.user_repository.update_user(current_user_id, fields)
         if not user:
             raise NotFoundException(detail="User not found")

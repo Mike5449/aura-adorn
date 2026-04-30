@@ -20,6 +20,7 @@ import models.catalog  # noqa: F401 — register catalog models for create_all
 import models.order    # noqa: F401 — register order/payment models for create_all
 import models.stock    # noqa: F401 — register stock receipts table
 import models.setting  # noqa: F401 — register app_settings (e.g. exchange rate)
+import models.otp_challenge  # noqa: F401 — register otp_challenges table
 from core.config import settings
 from core.exceptions import BaseAPIException, api_exception_handler
 from core.middleware import SecurityHeadersMiddleware

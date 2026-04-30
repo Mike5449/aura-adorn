@@ -64,6 +64,10 @@ class UserCreate(UserBase):
 class UserSelfUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
+    # Required when `password` is set: the user must re-authenticate by
+    # echoing back their current password. Prevents a stolen session
+    # cookie from being upgraded into a permanent password swap.
+    current_password: Optional[str] = None
 
     @field_validator("password")
     @classmethod

@@ -7,8 +7,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { authApi, tokenStorage } from "@/lib/api";
+import { authApi, tokenStorage, type LoginResult, type OtpChallengeResponse } from "@/lib/api";
 import type { ApiUser } from "@/lib/api-types";
+
+// What login() returns: either the resolved user (regular flow) or the
+// pending OTP challenge that the LoginPage must walk the user through.
+export type LoginOutcome =
+  | { kind: "user"; user: ApiUser }
+  | { kind: "otp"; challenge: OtpChallengeResponse };
 
 interface AuthCtx {
   user: ApiUser | null;
@@ -17,7 +23,8 @@ interface AuthCtx {
   isSuperAdmin: boolean;
   isAdmin: boolean;       // covers super_admin OR admin (anyone in admin space)
   isStaff: boolean;
-  login: (username: string, password: string) => Promise<ApiUser>;
+  login: (username: string, password: string) => Promise<LoginOutcome>;
+  finishOtp: (challengeId: string, code: string) => Promise<ApiUser>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -46,8 +53,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 
-  const login = useCallback(async (username: string, password: string) => {
-    await authApi.login(username, password);
+  const login = useCallback(async (username: string, password: string): Promise<LoginOutcome> => {
+    const result: LoginResult = await authApi.login(username, password);
+    if (result.kind === "otp") {
+      // No tokens yet — the LoginPage will collect the 6-digit code and
+      // call finishOtp() to complete the sign-in.
+      return { kind: "otp", challenge: result.challenge };
+    }
+    const me = await authApi.me();
+    setUser(me);
+    return { kind: "user", user: me };
+  }, []);
+
+  const finishOtp = useCallback(async (challengeId: string, code: string): Promise<ApiUser> => {
+    await authApi.verifyOtp(challengeId, code);
     const me = await authApi.me();
     setUser(me);
     return me;
@@ -67,10 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: user?.role === "super_admin" || user?.role === "admin",
       isStaff: ["super_admin", "admin", "manager", "staff"].includes(user?.role ?? ""),
       login,
+      finishOtp,
       logout,
       refresh,
     }),
-    [user, loading, login, logout, refresh],
+    [user, loading, login, finishOtp, logout, refresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

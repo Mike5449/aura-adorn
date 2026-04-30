@@ -3,7 +3,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from database import get_db
-from dtos.token import AccessToken, RefreshTokenRequest, Token
+from dtos.token import (
+    AccessToken,
+    LoginResponse,
+    OtpResendRequest,
+    OtpVerifyRequest,
+    RefreshTokenRequest,
+    Token,
+)
 from repositories.user_repository import UserRepository
 from services.auth_service import AuthService
 
@@ -16,17 +23,19 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 @router.post(
     "/token",
-    response_model=Token,
-    summary="Login — obtain access + refresh tokens",
+    response_model=LoginResponse,
+    summary="Login — issue tokens, or start an OTP challenge for admins",
     description=(
         "Authenticate with `username` and `password` (form-data, **not** JSON).\n\n"
-        "Returns:\n"
-        "- `access_token` — short-lived JWT (30 min by default). Use as `Authorization: Bearer <token>`.\n"
-        "- `refresh_token` — long-lived JWT (7 days). Use at `POST /token/refresh` to rotate the access token.\n\n"
-        "**Brute-force protection:** account is locked for 15 minutes after 5 failed attempts."
+        "Two response shapes:\n"
+        "- **Regular users** receive `access_token` + `refresh_token` immediately.\n"
+        "- **Admin / super_admin** receive `{otp_required, challenge_id, email_hint, expires_in_seconds}`. "
+        "The 6-digit code is emailed; the client must call `POST /token/verify-otp` with "
+        "`{challenge_id, code}` to obtain real tokens.\n\n"
+        "**Brute-force protection:** account is locked for 15 minutes after 5 failed password attempts."
     ),
     responses={
-        200: {"description": "Tokens issued successfully"},
+        200: {"description": "Tokens issued, or OTP challenge started"},
         401: {"description": "Invalid credentials"},
         423: {"description": "Account temporarily locked"},
     },
@@ -37,6 +46,41 @@ async def login_for_access_token(
     service: AuthService = Depends(get_auth_service),
 ):
     return service.login_access_token(form_data)
+
+
+@router.post(
+    "/token/verify-otp",
+    response_model=Token,
+    summary="Verify the 6-digit OTP and finalise admin login",
+    responses={
+        200: {"description": "Tokens issued"},
+        401: {"description": "Wrong code (counts towards 5-attempt cap)"},
+        404: {"description": "Challenge unknown — restart login"},
+        410: {"description": "Code expired — restart login"},
+        429: {"description": "Too many wrong attempts — restart login"},
+    },
+)
+async def verify_otp(
+    body: OtpVerifyRequest,
+    service: AuthService = Depends(get_auth_service),
+):
+    return service.verify_otp_and_login(body.challenge_id, body.code)
+
+
+@router.post(
+    "/token/resend-otp",
+    summary="Re-send the OTP for an in-flight admin login",
+    responses={
+        200: {"description": "New code sent"},
+        404: {"description": "Challenge unknown — restart login"},
+        429: {"description": "Wait before requesting another code"},
+    },
+)
+async def resend_otp(
+    body: OtpResendRequest,
+    service: AuthService = Depends(get_auth_service),
+):
+    return service.resend_otp(body.challenge_id)
 
 
 @router.post(

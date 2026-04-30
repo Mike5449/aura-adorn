@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from fastapi import HTTPException, status
 
@@ -9,12 +10,22 @@ from core.security import (
     decode_refresh_token,
     verify_password,
 )
+from repositories.otp_repository import OtpRepository
 from repositories.user_repository import UserRepository
+from services.otp_service import OtpService, role_requires_otp
 
 
 class AuthService:
-    def __init__(self, user_repository: UserRepository):
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        otp_service: Optional[OtpService] = None,
+    ):
         self.user_repository = user_repository
+        # Lazily build the OTP service from the same DB session as the user repo,
+        # so callers that don't care about OTP can keep instantiating AuthService
+        # with one argument as before.
+        self.otp_service = otp_service or OtpService(OtpRepository(user_repository.db))
 
     def authenticate_user(self, username: str, password: str):
         user = self.user_repository.get_user_by_username(username=username)
@@ -67,6 +78,22 @@ class AuthService:
                 detail="Account is disabled",
             )
 
+        # Privileged accounts must complete an OTP challenge before tokens
+        # are issued. Customers (or any non-admin role) skip this step and
+        # get tokens straight away.
+        if role_requires_otp(user.role):
+            return self.otp_service.start(user)
+
+        return self._issue_tokens(user)
+
+    def verify_otp_and_login(self, challenge_id: str, code: str) -> dict:
+        user = self.otp_service.verify(challenge_id, code)
+        return self._issue_tokens(user)
+
+    def resend_otp(self, challenge_id: str) -> dict:
+        return self.otp_service.resend(challenge_id)
+
+    def _issue_tokens(self, user) -> dict:
         from core.rbac import get_role_permissions
         permissions = sorted(get_role_permissions(user.role))
 

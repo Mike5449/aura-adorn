@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, Package, FolderTree, Receipt, LogOut, Loader2, Users, Boxes, Settings as SettingsIcon } from "lucide-react";
+import { LayoutDashboard, Package, FolderTree, Receipt, LogOut, Loader2, Users, Boxes, Settings as SettingsIcon, UserCog } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -29,6 +29,7 @@ const NAV: NavItem[] = [
   { to: "/admin/categories", label: "Catégories",      Icon: FolderTree,      exact: false, superOnly: true },
   { to: "/admin/users",      label: "Utilisateurs",    Icon: Users,           exact: false, superOnly: true },
   { to: "/admin/settings",   label: "Paramètres",      Icon: SettingsIcon,    exact: false, superOnly: true },
+  { to: "/admin/profile",    label: "Mon profil",      Icon: UserCog,         exact: false },
 ];
 
 function AdminLayout() {

@@ -150,14 +150,46 @@ export async function apiFetch<T = unknown>(
 // Auth
 // ---------------------------------------------------------------------------
 
+// /token may return tokens (regular user) OR an OTP challenge (admin/super_admin).
+// The frontend distinguishes the two via the `otp_required` flag.
+export interface OtpChallengeResponse {
+  otp_required: true;
+  challenge_id: string;
+  email_hint: string;
+  expires_in_seconds: number;
+}
+
+export type LoginResult =
+  | { kind: "tokens"; tokens: ApiTokens }
+  | { kind: "otp"; challenge: OtpChallengeResponse };
+
 export const authApi = {
-  async login(username: string, password: string): Promise<ApiTokens> {
-    const tokens = await apiFetch<ApiTokens>("/token", {
+  async login(username: string, password: string): Promise<LoginResult> {
+    const raw = await apiFetch<ApiTokens | OtpChallengeResponse>("/token", {
       method: "POST",
       formBody: { username, password },
     });
+    if ("otp_required" in raw && raw.otp_required) {
+      // Admins must finish OTP before tokens are issued; do NOT store anything yet.
+      return { kind: "otp", challenge: raw };
+    }
+    const tokens = raw as ApiTokens;
+    tokenStorage.set(tokens.access_token, tokens.refresh_token);
+    return { kind: "tokens", tokens };
+  },
+  async verifyOtp(challengeId: string, code: string): Promise<ApiTokens> {
+    const tokens = await apiFetch<ApiTokens>("/token/verify-otp", {
+      method: "POST",
+      body: { challenge_id: challengeId, code },
+    });
     tokenStorage.set(tokens.access_token, tokens.refresh_token);
     return tokens;
+  },
+  async resendOtp(challengeId: string): Promise<{ ok: boolean; expires_in_seconds: number }> {
+    return apiFetch<{ ok: boolean; expires_in_seconds: number }>("/token/resend-otp", {
+      method: "POST",
+      body: { challenge_id: challengeId },
+    });
   },
   async me(): Promise<ApiUser> {
     return apiFetch<ApiUser>("/users/me", { auth: true });
@@ -221,7 +253,15 @@ export const stockApi = {
     apiFetch<void>(`/stocks/${id}`, { method: "DELETE", auth: true }),
 };
 
+export interface UpdateMePayload {
+  email?: string;
+  password?: string;
+  current_password?: string;
+}
+
 export const userApi = {
+  updateMe: (data: UpdateMePayload) =>
+    apiFetch<ApiUser>("/users/me", { method: "PATCH", body: data, auth: true }),
   listAdmins: () => apiFetch<ApiUser[]>("/users/admins", { auth: true }),
   createAdmin: (data: CreateAdminPayload) =>
     apiFetch<ApiUser>("/users/admins", { method: "POST", body: data, auth: true }),
