@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { orderApi } from "@/lib/api";
+import { ChevronRight, Loader2, ImageOff } from "lucide-react";
+import { orderApi, resolveImageUrl } from "@/lib/api";
 import type { ApiOrder, OrderStatus } from "@/lib/api-types";
 import { toast } from "sonner";
 
@@ -71,7 +71,7 @@ function AdminOrders() {
     <div>
       <h1 className="font-display text-3xl">Commandes</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Suivi des paiements MonCash et de l'expédition.
+        Suivi des paiements MonCash et de l'expédition. <strong>Cliquez sur une ligne</strong> pour voir le détail (articles, client, livraison) et changer le statut.
       </p>
 
       <div className="gold-divider my-6" />
@@ -105,48 +105,87 @@ function AdminOrders() {
               <tr>
                 <th className="p-3">N°</th>
                 <th className="p-3">Client</th>
+                <th className="p-3">Articles</th>
                 <th className="p-3">Total</th>
                 <th className="p-3">Paiement</th>
                 <th className="p-3">Statut</th>
                 <th className="p-3">Date</th>
+                <th className="p-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {orders.map((o) => (
-                <tr
-                  key={o.id}
-                  onClick={() => setSelected(o)}
-                  className="cursor-pointer hover:bg-card/40"
-                >
-                  <td className="p-3 font-mono text-xs">{o.order_number}</td>
-                  <td className="p-3">
-                    <p className="font-medium">{o.customer_name}</p>
-                    <p className="text-xs text-muted-foreground">{o.customer_email}</p>
-                  </td>
-                  <td className="p-3">
-                    {Number(o.total_amount).toLocaleString("fr-HT")} {o.currency}
-                  </td>
-                  <td className="p-3">
-                    <span className={`inline-block rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${
-                      o.payment_status === "success"
-                        ? "border-emerald-500/40 text-emerald-400"
-                        : o.payment_status === "failed"
-                          ? "border-destructive/40 text-destructive"
-                          : "border-border text-muted-foreground"
-                    }`}>
-                      {o.payment_method.toUpperCase()} · {o.payment_status}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span className={`inline-block rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${STATUS_COLOR[o.status]}`}>
-                      {STATUS_LABEL[o.status]}
-                    </span>
-                  </td>
-                  <td className="p-3 text-xs text-muted-foreground">
-                    {new Date(o.created_at).toLocaleString("fr-HT")}
-                  </td>
-                </tr>
-              ))}
+              {orders.map((o) => {
+                const totalQty = o.items.reduce((s, it) => s + it.quantity, 0);
+                const firstName = o.items[0]?.product_name ?? "—";
+                const otherCount = o.items.length - 1;
+                return (
+                  <tr
+                    key={o.id}
+                    onClick={() => setSelected(o)}
+                    className="cursor-pointer hover:bg-card/40"
+                  >
+                    <td className="p-3 font-mono text-xs">{o.order_number}</td>
+                    <td className="p-3">
+                      <p className="font-medium">{o.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{o.customer_email}</p>
+                    </td>
+                    <td className="p-3">
+                      <div
+                        className="flex items-start gap-3"
+                        title={o.items.map((it) => `${it.quantity}× ${it.product_name}`).join(", ")}
+                      >
+                        {o.items[0]?.image_url ? (
+                          <img
+                            src={resolveImageUrl(o.items[0].image_url)}
+                            alt={firstName}
+                            className="h-12 w-12 shrink-0 border border-border object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-border bg-background/40 text-muted-foreground">
+                            <ImageOff className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 font-medium leading-tight">{firstName}</p>
+                          {otherCount > 0 && (
+                            <p className="text-[11px] text-muted-foreground">
+                              + {otherCount} autre{otherCount > 1 ? "s" : ""}
+                            </p>
+                          )}
+                          <p className="mt-1 text-[10px] uppercase tracking-widest text-gold/70">
+                            {totalQty} unité{totalQty > 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      {Number(o.total_amount).toLocaleString("fr-HT")} {o.currency}
+                    </td>
+                    <td className="p-3">
+                      <span className={`inline-block rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${
+                        o.payment_status === "success"
+                          ? "border-emerald-500/40 text-emerald-400"
+                          : o.payment_status === "failed"
+                            ? "border-destructive/40 text-destructive"
+                            : "border-border text-muted-foreground"
+                      }`}>
+                        {o.payment_method.toUpperCase()} · {o.payment_status}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`inline-block rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${STATUS_COLOR[o.status]}`}>
+                        {STATUS_LABEL[o.status]}
+                      </span>
+                    </td>
+                    <td className="p-3 text-xs text-muted-foreground">
+                      {new Date(o.created_at).toLocaleString("fr-HT")}
+                    </td>
+                    <td className="p-3 text-right text-muted-foreground">
+                      <ChevronRight className="inline h-4 w-4" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -245,8 +284,19 @@ function AdminOrders() {
               <h3 className="text-xs uppercase tracking-[0.3em] text-gold">Articles</h3>
               <ul className="mt-3 divide-y divide-border border-y border-border">
                 {selected.items.map((it) => (
-                  <li key={it.id} className="flex items-center justify-between gap-4 py-3 text-sm">
-                    <div>
+                  <li key={it.id} className="flex items-center gap-4 py-3 text-sm">
+                    {it.image_url ? (
+                      <img
+                        src={resolveImageUrl(it.image_url)}
+                        alt={it.product_name}
+                        className="h-16 w-16 shrink-0 border border-border object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center border border-border bg-background/40 text-muted-foreground">
+                        <ImageOff className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="flex-1">
                       <p className="font-medium">{it.product_name}</p>
                       {it.size_label && (
                         <p className="text-xs text-muted-foreground">Taille : {it.size_label}</p>

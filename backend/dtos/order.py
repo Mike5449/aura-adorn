@@ -58,6 +58,7 @@ class OrderItemResponse(BaseModel):
     product_name: str
     size_label: Optional[str]
     color_label: Optional[str] = None
+    image_url: Optional[str] = None
     quantity: int
     unit_price: Decimal
 

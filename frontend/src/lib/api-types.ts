@@ -57,6 +57,7 @@ export interface ApiOrderItem {
   product_name: string;
   size_label: string | null;
   color_label: string | null;
+  image_url: string | null;
   quantity: number;
   unit_price: string;
 }

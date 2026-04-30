@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, Package, Truck, ShieldCheck, Copy, Check } from "lucide-react";
-import { orderApi } from "@/lib/api";
+import { CheckCircle2, Loader2, Package, Truck, ShieldCheck, Copy, Check, ImageOff } from "lucide-react";
+import { orderApi, resolveImageUrl } from "@/lib/api";
 import type { ApiOrder } from "@/lib/api-types";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
@@ -116,8 +116,19 @@ function SuccessPage() {
             <h2 className="text-xs uppercase tracking-[0.3em] text-gold">Articles</h2>
             <ul className="mt-4 divide-y divide-border">
               {order.items.map((it) => (
-                <li key={it.id} className="flex items-center justify-between gap-4 py-3 text-sm">
-                  <div>
+                <li key={it.id} className="flex items-center gap-4 py-3 text-sm">
+                  {it.image_url ? (
+                    <img
+                      src={resolveImageUrl(it.image_url)}
+                      alt={it.product_name}
+                      className="h-14 w-14 shrink-0 border border-border object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center border border-border bg-background/40 text-muted-foreground">
+                      <ImageOff className="h-4 w-4" />
+                    </div>
+                  )}
+                  <div className="flex-1">
                     <p className="font-medium">{it.product_name}</p>
                     {it.size_label && (
                       <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">

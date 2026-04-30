@@ -96,6 +96,10 @@ class OrderItem(Base):
     product_name = Column(String(200), nullable=False)  # snapshot at time of order
     size_label = Column(String(20), nullable=True)
     color_label = Column(String(40), nullable=True)
+    # Snapshot of product.image_url at time of order so the receipt /
+    # admin order view stays correct even if the product is later deleted
+    # or its image is changed in the catalog.
+    image_url = Column(String(500), nullable=True)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
 

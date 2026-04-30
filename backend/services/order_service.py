@@ -210,6 +210,7 @@ class OrderService:
                     product_name=product.name,
                     size_label=size_label,
                     color_label=color_label,
+                    image_url=product.image_url,
                     quantity=it.quantity,
                     unit_price=unit_price,
                 )
