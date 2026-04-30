@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Loader2, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { contactApi } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Coordonnées Beauté & Élégance
@@ -36,14 +37,23 @@ const schema = z.object({
 });
 
 function Contact() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: "", website: "" });
+  const [sending, setSending] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = schema.safeParse(form);
     if (!result.success) { toast.error(result.error.issues[0].message); return; }
-    toast.success("Merci — nous reviendrons vers vous sous 24 h.");
-    setForm({ name: "", email: "", message: "" });
+    setSending(true);
+    try {
+      await contactApi.send(form);
+      toast.success("Merci — votre message est arrivé. Nous reviendrons vers vous sous 24 h.");
+      setForm({ name: "", email: "", message: "", website: "" });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Échec de l'envoi. Réessayez ou contactez-nous via WhatsApp.");
+    } finally {
+      setSending(false);
+    }
   };
 
   // « Envoyer sur WhatsApp » : ouvre WhatsApp avec un message pré-rempli
@@ -133,11 +143,27 @@ function Contact() {
               <textarea value={form.message} maxLength={1000} rows={6} onChange={(e) => setForm({ ...form, message: e.target.value })}
                 className="mt-2 w-full resize-none border border-border bg-background px-4 py-3 text-sm focus:border-gold focus:outline-none" />
             </div>
+
+            {/* Honeypot — humans never see this; bots fill every field. */}
+            <div aria-hidden="true" className="hidden">
+              <label>Site web</label>
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={form.website}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <Button type="submit" variant="luxe" size="xl" className="w-full">
-              Envoyer le Message
+            <Button type="submit" variant="luxe" size="xl" className="w-full" disabled={sending}>
+              {sending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Envoi…</>
+              ) : (
+                "Envoyer le Message"
+              )}
             </Button>
             <Button
               type="button"

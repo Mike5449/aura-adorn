@@ -27,6 +27,7 @@ from database import Base, SessionLocal, engine
 from routers import (
     auth_router,
     category_router,
+    contact_router,
     media_router,
     order_router,
     product_router,
@@ -217,6 +218,7 @@ app.include_router(order_router.router)
 app.include_router(stock_router.router)
 app.include_router(setting_router.router)
 app.include_router(media_router.router)
+app.include_router(contact_router.router)
 
 # Serve uploaded images
 _uploads_dir = Path(__file__).resolve().parent / "uploads"

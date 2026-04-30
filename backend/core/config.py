@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     # Substring (case-insensitive) the customer's city must contain to be eligible
     DELIVERY_CITY_KEYWORD: str = "delmas"
 
+    # SMTP (contact form) — leave blank to disable. Hostinger defaults shown.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 465
+    SMTP_USE_SSL: bool = True   # True for port 465, False (STARTTLS) for 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_NAME: str = "Beauté & Élégance"
+    # Where contact-form messages land. Defaults to SMTP_USER if empty.
+    CONTACT_TO_EMAIL: str = ""
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

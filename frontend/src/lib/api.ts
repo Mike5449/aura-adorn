@@ -379,3 +379,19 @@ export const orderApi = {
       body: { transaction_id: transactionId },
     }),
 };
+
+// ---------------------------------------------------------------------------
+// Contact form
+// ---------------------------------------------------------------------------
+
+export interface ContactPayload {
+  name: string;
+  email: string;
+  message: string;
+  website?: string; // honeypot — leave empty
+}
+
+export const contactApi = {
+  send: (data: ContactPayload) =>
+    apiFetch<{ status: string }>("/contact", { method: "POST", body: data }),
+};
