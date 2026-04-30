@@ -2,7 +2,10 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +95,28 @@ def resolve_moncash(
     service: OrderService = Depends(get_order_service),
 ):
     return service.resolve_moncash_payment(data.transaction_id)
+
+
+@router.get(
+    "/moncash/webhook",
+    summary="MonCash redirect fallback (public, GET)",
+    description=(
+        "MonCash sometimes sends the customer's browser to the alertUrl "
+        "(this endpoint) with `?transactionId=...` instead of the returnUrl. "
+        "When that happens we 302 the customer to /checkout/return so the UI "
+        "shows the right page; the corresponding POST webhook fires in parallel."
+    ),
+)
+async def moncash_webhook_redirect(transactionId: Optional[str] = Query(None)):
+    target_base = (
+        settings.MONCASH_RETURN_URL
+        or "https://boteakelegans.com/checkout/return"
+    ).rstrip("/")
+    if transactionId:
+        target = f"{target_base}?transactionId={transactionId}"
+    else:
+        target = target_base
+    return RedirectResponse(url=target, status_code=302)
 
 
 @router.post(

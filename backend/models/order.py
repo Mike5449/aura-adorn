@@ -59,7 +59,8 @@ class Order(Base):
     status = Column(String(20), default=ORDER_STATUS_PENDING, nullable=False)
     payment_method = Column(String(20), default=PAYMENT_METHOD_MONCASH, nullable=False)
     payment_status = Column(String(20), default=PAYMENT_STATUS_PENDING, nullable=False)
-    payment_reference = Column(String(120), nullable=True, index=True)
+    # MonCash returns long JWTs as payment_token; keep this unbounded.
+    payment_reference = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
