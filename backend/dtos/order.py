@@ -16,6 +16,7 @@ VALID_PAYMENT_STATUSES = {"pending", "success", "failed"}
 class OrderItemCreate(BaseModel):
     product_id: int
     product_size_id: Optional[int] = None
+    product_color_id: Optional[int] = None
     quantity: int = Field(ge=1)
 
 
@@ -53,8 +54,10 @@ class OrderItemResponse(BaseModel):
     id: int
     product_id: Optional[int]
     product_size_id: Optional[int]
+    product_color_id: Optional[int] = None
     product_name: str
     size_label: Optional[str]
+    color_label: Optional[str] = None
     quantity: int
     unit_price: Decimal
 

@@ -85,7 +85,8 @@ class Product(Base):
     is_bestseller = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     has_sizes = Column(Boolean, default=False, nullable=False)
-    stock = Column(Integer, default=0, nullable=False)  # ignored if has_sizes=True
+    has_colors = Column(Boolean, default=False, nullable=False)
+    stock = Column(Integer, default=0, nullable=False)  # ignored if variants are used
 
     # Owner — the admin who created the product. Used to scope listing
     # ("each admin sees only their own products"). super_admin sees all.
@@ -112,6 +113,13 @@ class Product(Base):
         lazy="selectin",
         order_by="ProductSize.size_label",
     )
+    colors = relationship(
+        "ProductColor",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="ProductColor.id",
+    )
     created_by = relationship("User", lazy="joined", foreign_keys=[created_by_user_id])
 
 
@@ -120,10 +128,30 @@ class ProductSize(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
-    size_label = Column(String(20), nullable=False)  # e.g. "52", "54" for rings
+    size_label = Column(String(20), nullable=False)  # e.g. "52", "54", "M", "XL"
     stock = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     product = relationship("Product", back_populates="sizes")
+
+
+class ProductColor(Base):
+    """
+    A color variant for a product. Used together with sizes for items
+    like Maillots where the customer picks both. The hex code drives
+    the visual swatch on the storefront.
+    """
+    __tablename__ = "product_colors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    color_label = Column(String(40), nullable=False)        # "Bleu marine", "Rouge"
+    hex_code = Column(String(9), nullable=True)             # "#1A2B3C" — for swatches
+    stock = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    product = relationship("Product", back_populates="colors")

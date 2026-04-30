@@ -166,7 +166,7 @@ class ProductService:
         if current_user is not None:
             self._check_category_allowed(current_user, category)
 
-        fields = data.model_dump(exclude={"sizes"})
+        fields = data.model_dump(exclude={"sizes", "colors"})
         fields["section"] = category.section
         if current_user is not None:
             fields["created_by_user_id"] = getattr(current_user, "id", None)
@@ -176,6 +176,12 @@ class ProductService:
             self.repo.replace_sizes(
                 product.id,
                 [s.model_dump() for s in data.sizes],
+            )
+            self.repo.db.refresh(product)
+        if data.colors:
+            self.repo.replace_colors(
+                product.id,
+                [c.model_dump() for c in data.colors],
             )
             self.repo.db.refresh(product)
         return product
@@ -188,7 +194,7 @@ class ProductService:
         if current_user is not None:
             self._check_can_edit(current_user, product)
 
-        fields = data.model_dump(exclude_unset=True, exclude={"sizes"})
+        fields = data.model_dump(exclude_unset=True, exclude={"sizes", "colors"})
 
         if "slug" in fields:
             other = self.repo.get_by_slug(fields["slug"])
@@ -209,6 +215,12 @@ class ProductService:
             self.repo.replace_sizes(
                 product_id,
                 [s.model_dump() for s in data.sizes],
+            )
+            self.repo.db.refresh(updated)
+        if data.colors is not None:
+            self.repo.replace_colors(
+                product_id,
+                [c.model_dump() for c in data.colors],
             )
             self.repo.db.refresh(updated)
         return updated

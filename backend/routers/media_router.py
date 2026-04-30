@@ -11,8 +11,9 @@ catalog editors can fill the disk.
 """
 from __future__ import annotations
 
+import hashlib
 import os
-import secrets
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -63,25 +64,40 @@ async def upload_image(file: UploadFile = File(...)) -> dict[str, str]:
             ),
         )
 
-    # Stream the file in chunks to enforce the size limit
     extension = ALLOWED_MIME[file.content_type]
-    name = f"{secrets.token_urlsafe(16)}{extension}"
-    target = UPLOAD_DIR / name
+
+    # Stream into a temp file while computing SHA-256 of the content. Once we
+    # know the hash we can name the final file <hash>.<ext>; if a file with
+    # that name already exists we drop the temp (deduplication) and return
+    # the existing URL. Otherwise we atomically move the temp into place.
+    digest = hashlib.sha256()
     written = 0
-    with target.open("wb") as out:
-        while chunk := await file.read(64 * 1024):
-            written += len(chunk)
-            if written > MAX_BYTES:
-                out.close()
-                try:
-                    os.remove(target)
-                except OSError:
-                    pass
-                raise HTTPException(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                    detail=f"File too large (max {MAX_BYTES // (1024 * 1024)} MB)",
-                )
-            out.write(chunk)
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=extension, dir=UPLOAD_DIR)
+    try:
+        with os.fdopen(tmp_fd, "wb") as out:
+            while chunk := await file.read(64 * 1024):
+                written += len(chunk)
+                if written > MAX_BYTES:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"File too large (max {MAX_BYTES // (1024 * 1024)} MB)",
+                    )
+                digest.update(chunk)
+                out.write(chunk)
+
+        name = f"{digest.hexdigest()}{extension}"
+        target = UPLOAD_DIR / name
+        if target.exists():
+            # Same content already on disk — drop the temp and reuse it.
+            os.remove(tmp_path)
+        else:
+            os.replace(tmp_path, target)
+    except Exception:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        raise
 
     return {
         "filename": name,

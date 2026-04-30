@@ -179,11 +179,25 @@ class OrderService:
                         detail=f"Only {size.stock} unit(s) available for size {size.size_label}"
                     )
                 size_label = size.size_label
-            else:
-                if product.stock < it.quantity:
-                    raise OutOfStockException(
-                        detail=f"Only {product.stock} unit(s) of '{product.name}' available"
+            elif product.stock < it.quantity:
+                raise OutOfStockException(
+                    detail=f"Only {product.stock} unit(s) of '{product.name}' available"
+                )
+
+            color_label = None
+            if product.has_colors:
+                if it.product_color_id is None:
+                    raise BaseAPIException(
+                        detail=f"A color is required for '{product.name}'"
                     )
+                color = self.product_repo.get_color(it.product_color_id)
+                if not color or color.product_id != product.id or not color.is_active:
+                    raise NotFoundException(detail="Color not found for this product")
+                if color.stock < it.quantity:
+                    raise OutOfStockException(
+                        detail=f"Only {color.stock} unit(s) available in {color.color_label}"
+                    )
+                color_label = color.color_label
 
             unit_price = Decimal(product.price)
             total += unit_price * it.quantity
@@ -192,8 +206,10 @@ class OrderService:
                 OrderItem(
                     product_id=product.id,
                     product_size_id=it.product_size_id,
+                    product_color_id=it.product_color_id,
                     product_name=product.name,
                     size_label=size_label,
+                    color_label=color_label,
                     quantity=it.quantity,
                     unit_price=unit_price,
                 )
@@ -337,6 +353,8 @@ class OrderService:
                     self.product_repo.decrement_size_stock(item.product_size_id, item.quantity)
                 elif item.product_id is not None:
                     self.product_repo.decrement_product_stock(item.product_id, item.quantity)
+                if item.product_color_id is not None:
+                    self.product_repo.decrement_color_stock(item.product_color_id, item.quantity)
 
             return self.repo.update_fields(
                 order.id,

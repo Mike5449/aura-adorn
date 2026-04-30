@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from models.catalog import Category, Product, ProductSize
+from models.catalog import Category, Product, ProductColor, ProductSize
 
 
 class CategoryRepository:
@@ -133,4 +133,22 @@ class ProductRepository:
         product = self.get_by_id(product_id)
         if product:
             product.stock = max(0, product.stock - qty)
+            self.db.commit()
+
+    # ---------------- Colors ----------------
+
+    def replace_colors(self, product_id: int, colors: list[dict]) -> None:
+        """Drop existing colors and replace with the supplied list."""
+        self.db.query(ProductColor).filter(ProductColor.product_id == product_id).delete()
+        for c in colors:
+            self.db.add(ProductColor(product_id=product_id, **c))
+        self.db.commit()
+
+    def get_color(self, color_id: int) -> Optional[ProductColor]:
+        return self.db.query(ProductColor).filter(ProductColor.id == color_id).first()
+
+    def decrement_color_stock(self, color_id: int, qty: int) -> None:
+        color = self.get_color(color_id)
+        if color:
+            color.stock = max(0, color.stock - qty)
             self.db.commit()

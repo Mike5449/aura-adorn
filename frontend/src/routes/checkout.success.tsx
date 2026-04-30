@@ -124,6 +124,11 @@ function SuccessPage() {
                         Taille : {it.size_label}
                       </p>
                     )}
+                    {it.color_label && (
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                        Couleur : {it.color_label}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p>x{it.quantity}</p>

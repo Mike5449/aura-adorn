@@ -29,7 +29,7 @@ export default function CartDrawer() {
               <ul className="space-y-6">
                 {items.map((item) => {
                   const key = keyOf(item);
-                  const { product, qty, selectedSizeLabel } = item;
+                  const { product, qty, selectedSizeLabel, selectedColorLabel } = item;
                   return (
                     <li key={key} className="flex gap-4">
                       <img src={resolveImageUrl(product.image)} alt={product.name} className="h-24 w-24 shrink-0 object-cover" />
@@ -44,6 +44,11 @@ export default function CartDrawer() {
                         {selectedSizeLabel && (
                           <span className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                             Taille : {selectedSizeLabel}
+                          </span>
+                        )}
+                        {selectedColorLabel && (
+                          <span className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                            Couleur : {selectedColorLabel}
                           </span>
                         )}
                         <div className="mt-auto flex items-center gap-3">

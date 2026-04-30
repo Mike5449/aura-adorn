@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Menu, X, Search, Shield, LogOut, LogIn } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, Shield, LogOut, LogIn } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -80,7 +80,7 @@ export default function Header() {
             className="relative inline-flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-gold"
             aria-label="Ouvrir le panier"
           >
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-primary-foreground">
                 {count}

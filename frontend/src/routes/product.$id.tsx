@@ -52,10 +52,13 @@ function ProductPage() {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
   const [sizeId, setSizeId] = useState<number | null>(null);
+  const [colorId, setColorId] = useState<number | null>(null);
 
   const comingSoon = product.status === "coming_soon";
   const requiresSize = product.hasSizes;
+  const requiresColor = product.hasColors;
   const availableSizes = product.sizes.filter((s) => s.is_active);
+  const availableColors = product.colors.filter((c) => c.is_active);
 
   const handleAdd = () => {
     if (comingSoon) {
@@ -66,12 +69,21 @@ function ProductPage() {
       toast.error("Veuillez choisir une taille.");
       return;
     }
+    if (requiresColor && colorId == null) {
+      toast.error("Veuillez choisir une couleur.");
+      return;
+    }
     const size = availableSizes.find((s) => s.id === sizeId);
     if (size && size.stock < qty) {
       toast.error(`Stock insuffisant — ${size.stock} unité(s) disponible(s).`);
       return;
     }
-    add(product, qty, size?.id, size?.size_label);
+    const color = availableColors.find((c) => c.id === colorId);
+    if (color && color.stock < qty) {
+      toast.error(`Stock insuffisant pour ${color.color_label} — ${color.stock} unité(s).`);
+      return;
+    }
+    add(product, qty, size?.id, size?.size_label, color?.id, color?.color_label);
     toast.success("Ajouté au panier");
   };
 
@@ -119,6 +131,54 @@ function ProductPage() {
 
           <div className="gold-divider my-8" />
           <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
+
+          {requiresColor && (
+            <div className="mt-10">
+              <div className="mb-3 flex items-baseline justify-between">
+                <span className="text-xs uppercase tracking-[0.3em] text-gold">Choisissez votre couleur</span>
+                {colorId && (
+                  <span className="text-xs text-muted-foreground">
+                    Couleur : <strong className="text-foreground">
+                      {availableColors.find((c) => c.id === colorId)?.color_label}
+                    </strong>
+                  </span>
+                )}
+              </div>
+              {availableColors.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune couleur disponible pour le moment.</p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {availableColors.map((c) => {
+                    const oos = c.stock <= 0;
+                    const selected = colorId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        disabled={oos || comingSoon}
+                        onClick={() => setColorId(c.id)}
+                        title={oos ? `${c.color_label} — rupture de stock` : `${c.color_label} (${c.stock} dispo)`}
+                        className={`flex items-center gap-2 border px-3 py-2 text-sm transition-colors ${
+                          selected
+                            ? "border-gold ring-2 ring-gold/40"
+                            : oos
+                              ? "cursor-not-allowed border-border/40 opacity-50 line-through"
+                              : "border-border hover:border-gold"
+                        }`}
+                      >
+                        <span
+                          className="inline-block h-5 w-5 rounded-full border border-border"
+                          style={{ backgroundColor: c.hex_code ?? "transparent" }}
+                          aria-hidden
+                        />
+                        <span>{c.color_label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {requiresSize && (
             <div className="mt-10">

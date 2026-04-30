@@ -123,6 +123,13 @@ function Index() {
               {hommeFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
+          <div className="mt-10 text-center md:hidden">
+            <Button variant="outlineGold" size="lg" asChild>
+              <Link to="/shop" search={{ section: "homme", group: "all", category: "all" }}>
+                Voir tous les produits Homme →
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -148,6 +155,13 @@ function Index() {
             {femmeFeatured.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
+        <div className="mt-10 text-center md:hidden">
+          <Button variant="outlineGold" size="lg" asChild>
+            <Link to="/shop" search={{ section: "femme", group: "all", category: "all" }}>
+              Voir tous les produits Femme →
+            </Link>
+          </Button>
+        </div>
       </section>
 
       {/* POURQUOI NOUS */}
@@ -155,13 +169,13 @@ function Index() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-14 text-center">
             <span className="text-xs uppercase tracking-[0.4em] text-gold">La Promesse Beauté &amp; Élégance</span>
-            <h2 className="mt-4 font-display text-4xl md:text-5xl">Pourquoi Nous Choisir</h2>
+            <h2 className="mt-4 font-display text-4xl md:text-5xl">Pourquoi Nous Choisir ?</h2>
           </div>
-          <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               { Icon: Sparkles, title: "Qualité Premium", desc: "Pièces finies à la main et formules haut de gamme uniquement." },
-              { Icon: ShieldCheck, title: "Luxe Accessible", desc: "L'artisanat d'atelier sans les marges exorbitantes." },
-              { Icon: Truck, title: "Livraison Mondiale", desc: "Express, intégralement assurée, magnifiquement emballée." },
+              { Icon: ShieldCheck, title: "Vous Met en Valeur", desc: "Des pièces choisies pour révéler votre style et magnifier votre présence." },
+              { Icon: Truck, title: "Livraison à Domicile", desc: "Livraison rapide à Delmas, soigneusement emballée jusqu'à votre porte." },
               { Icon: Lock, title: "Paiement MonCash", desc: "Réglez en toute simplicité depuis votre compte MonCash Digicel." },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="text-center">
@@ -182,20 +196,20 @@ function Index() {
           <span className="text-xs uppercase tracking-[0.4em] text-gold">Adorée Partout</span>
           <h2 className="mt-4 font-display text-4xl md:text-5xl">Paroles de Clients</h2>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
           {[
             { name: "Alexandre R.", role: "Port-au-Prince, HT", quote: "La chevalière est exquise — lourde, audacieuse et d'une élégance impossible. Beauté & Élégance a redéfini ce qu'est le luxe pour moi." },
             { name: "Sofia M.", role: "Pétion-Ville, HT", quote: "La palette Noir est la plus pigmentée que j'aie jamais possédée. L'écrin seul est un cadeau qu'on s'offre." },
             { name: "James T.", role: "Cap-Haïtien, HT", quote: "De la chaîne à la montre, chaque pièce est arrivée impeccable. C'est désormais ma référence pour chaque cadeau." },
           ].map((t) => (
-            <figure key={t.name} className="border border-border bg-card p-8 transition-colors hover:border-gold/60">
-              <div className="flex gap-1 text-gold">
-                {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
+            <figure key={t.name} className="border border-border bg-card p-4 transition-colors hover:border-gold/60 sm:p-6 md:p-8">
+              <div className="flex gap-0.5 text-gold sm:gap-1">
+                {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />)}
               </div>
-              <blockquote className="mt-5 text-base leading-relaxed text-foreground/90">« {t.quote} »</blockquote>
-              <figcaption className="mt-6 border-t border-border pt-4">
-                <p className="text-sm font-medium">{t.name}</p>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{t.role}</p>
+              <blockquote className="mt-3 text-sm leading-relaxed text-foreground/90 sm:mt-5 sm:text-base">« {t.quote} »</blockquote>
+              <figcaption className="mt-4 border-t border-border pt-3 sm:mt-6 sm:pt-4">
+                <p className="text-xs font-medium sm:text-sm">{t.name}</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground sm:text-xs sm:tracking-[0.2em]">{t.role}</p>
               </figcaption>
             </figure>
           ))}

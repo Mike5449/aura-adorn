@@ -96,6 +96,28 @@ class ProductSizeResponse(ProductSizeBase):
 
 
 # ---------------------------------------------------------------------------
+# Product Color
+# ---------------------------------------------------------------------------
+
+class ProductColorBase(BaseModel):
+    color_label: str = Field(min_length=1, max_length=40)
+    hex_code: Optional[str] = Field(default=None, max_length=9)
+    stock: int = Field(ge=0, default=0)
+    is_active: bool = True
+
+
+class ProductColorCreate(ProductColorBase):
+    pass
+
+
+class ProductColorResponse(ProductColorBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+# ---------------------------------------------------------------------------
 # Product
 # ---------------------------------------------------------------------------
 
@@ -111,6 +133,7 @@ class ProductBase(BaseModel):
     is_bestseller: bool = False
     is_active: bool = True
     has_sizes: bool = False
+    has_colors: bool = False
     stock: int = Field(ge=0, default=0)
 
     @field_validator("slug")
@@ -130,6 +153,7 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     sizes: List[ProductSizeCreate] = []
+    colors: List[ProductColorCreate] = []
 
 
 class ProductUpdate(BaseModel):
@@ -144,8 +168,10 @@ class ProductUpdate(BaseModel):
     is_bestseller: Optional[bool] = None
     is_active: Optional[bool] = None
     has_sizes: Optional[bool] = None
+    has_colors: Optional[bool] = None
     stock: Optional[int] = Field(default=None, ge=0)
     sizes: Optional[List[ProductSizeCreate]] = None
+    colors: Optional[List[ProductColorCreate]] = None
 
     @field_validator("slug")
     @classmethod
@@ -176,8 +202,10 @@ class ProductResponse(BaseModel):
     is_bestseller: bool
     is_active: bool
     has_sizes: bool
+    has_colors: bool = False
     stock: int
     sizes: List[ProductSizeResponse] = []
+    colors: List[ProductColorResponse] = []
 
     class Config:
         from_attributes = True

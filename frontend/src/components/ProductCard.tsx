@@ -3,7 +3,7 @@ import { Product } from "@/data/products";
 import { formatUsd } from "@/lib/api-types";
 import { useCart } from "@/context/CartContext";
 import { resolveImageUrl } from "@/lib/api";
-import { Hourglass, ShoppingBag, Star } from "lucide-react";
+import { Hourglass, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
 
 // Deterministic pseudo-rating per product so cards look populated until
@@ -60,40 +60,76 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="group relative flex flex-col overflow-hidden border border-border/40 bg-card/40 transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:shadow-[0_8px_30px_rgba(212,175,55,0.12)]">
-      {/* Image */}
-      <Link
-        to="/product/$id"
-        params={{ id: product.id }}
-        className="relative block aspect-square overflow-hidden bg-onyx"
-      >
-        <img
-          src={resolveImageUrl(product.image)}
-          alt={product.name}
-          loading="lazy"
-          width={800}
-          height={800}
-          className={`h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
-            comingSoon ? "opacity-70" : ""
+      {/* Image area + price/cart overlay */}
+      <div className="relative">
+        <Link
+          to="/product/$id"
+          params={{ id: product.id }}
+          className="relative block aspect-square overflow-hidden bg-onyx"
+        >
+          <img
+            src={resolveImageUrl(product.image)}
+            alt={product.name}
+            loading="lazy"
+            width={800}
+            height={800}
+            className={`h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
+              comingSoon ? "opacity-70" : ""
+            }`}
+          />
+
+          {/* Badges */}
+          <div className="absolute left-3 top-3 z-10 flex flex-col gap-1.5">
+            {product.bestseller && !comingSoon && (
+              <span className="bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                Best-Seller
+              </span>
+            )}
+            {comingSoon && (
+              <span className="border border-gold/60 bg-background/80 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-gold">
+                À venir
+              </span>
+            )}
+          </div>
+
+          {/* Price — overlaid on bottom-right of the image */}
+          <span className="absolute bottom-2 right-2 z-10 rounded-sm bg-background/85 px-2.5 py-1 text-sm font-semibold text-gold shadow-md backdrop-blur-sm sm:bottom-3 sm:right-3 sm:text-base">
+            {formatUsd(product.price)}
+          </span>
+        </Link>
+
+        {/* Cart — overlaid on top-right of the image */}
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={comingSoon}
+          aria-label={
+            comingSoon
+              ? "Bientôt disponible"
+              : requiresSize
+                ? "Choisir une taille"
+                : "Ajouter au panier"
+          }
+          title={
+            comingSoon
+              ? "Bientôt disponible"
+              : requiresSize
+                ? "Choisir une taille"
+                : "Ajouter au panier"
+          }
+          className={`absolute right-2 top-2 z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border shadow-md backdrop-blur-sm transition-all sm:right-3 sm:top-3 sm:h-10 sm:w-10 ${
+            comingSoon
+              ? "cursor-not-allowed border-border/40 bg-background/70 text-muted-foreground/50"
+              : "border-gold/60 bg-background/85 text-gold hover:bg-gold hover:text-primary-foreground hover:scale-110"
           }`}
-        />
-
-        {/* Badges */}
-        <div className="absolute left-3 top-3 z-10 flex flex-col gap-1.5">
-          {product.bestseller && !comingSoon && (
-            <span className="bg-gold px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-              Best-Seller
-            </span>
+        >
+          {comingSoon ? (
+            <Hourglass className="h-4 w-4 sm:h-5 sm:w-5" />
+          ) : (
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
           )}
-          {comingSoon && (
-            <span className="border border-gold/60 bg-background/80 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-gold">
-              À venir
-            </span>
-          )}
-        </div>
-
-        {/* Subtle bottom gradient on hover */}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      </Link>
+        </button>
+      </div>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -121,43 +157,6 @@ export default function ProductCard({ product }: { product: Product }) {
         <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80">
           {product.description}
         </p>
-
-        {/* Price + cart icon */}
-        <div className="mt-auto flex items-center justify-between gap-3 pt-2">
-          <span className="text-base font-semibold text-gold">
-            {formatUsd(product.price)}
-          </span>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={comingSoon}
-            aria-label={
-              comingSoon
-                ? "Bientôt disponible"
-                : requiresSize
-                  ? "Choisir une taille"
-                  : "Ajouter au panier"
-            }
-            title={
-              comingSoon
-                ? "Bientôt disponible"
-                : requiresSize
-                  ? "Choisir une taille"
-                  : "Ajouter au panier"
-            }
-            className={`group/btn inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all ${
-              comingSoon
-                ? "cursor-not-allowed border-border/40 text-muted-foreground/40"
-                : "border-gold/40 text-gold hover:bg-gold hover:text-primary-foreground hover:scale-110"
-            }`}
-          >
-            {comingSoon ? (
-              <Hourglass className="h-4 w-4" />
-            ) : (
-              <ShoppingBag className="h-4 w-4 transition-transform" />
-            )}
-          </button>
-        </div>
       </div>
     </article>
   );

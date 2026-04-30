@@ -330,6 +330,7 @@ export const productApi = {
 export interface CreateOrderItem {
   product_id: number;
   product_size_id?: number | null;
+  product_color_id?: number | null;
   quantity: number;
 }
 

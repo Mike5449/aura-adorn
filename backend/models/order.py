@@ -91,9 +91,11 @@ class OrderItem(Base):
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     product_size_id = Column(Integer, ForeignKey("product_sizes.id", ondelete="SET NULL"), nullable=True)
+    product_color_id = Column(Integer, ForeignKey("product_colors.id", ondelete="SET NULL"), nullable=True)
 
     product_name = Column(String(200), nullable=False)  # snapshot at time of order
     size_label = Column(String(20), nullable=True)
+    color_label = Column(String(40), nullable=True)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
 

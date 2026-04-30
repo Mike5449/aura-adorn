@@ -251,6 +251,9 @@ function AdminOrders() {
                       {it.size_label && (
                         <p className="text-xs text-muted-foreground">Taille : {it.size_label}</p>
                       )}
+                      {it.color_label && (
+                        <p className="text-xs text-muted-foreground">Couleur : {it.color_label}</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p>x{it.quantity}</p>

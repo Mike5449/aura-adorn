@@ -13,7 +13,7 @@ import {
 } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2, Loader2, MapPin, Minus, Plus, Smartphone, Truck, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { orderApi, resolveImageUrl } from "@/lib/api";
 
@@ -67,6 +67,14 @@ function CartPage() {
   const finalTotalHtg = subtotalHtg + deliveryFee;
   const amountToFreeDeliveryHtg = Math.max(0, FREE_DELIVERY_THRESHOLD_HTG - subtotalHtg);
 
+  // Auto-cocher la livraison dès que le seuil de gratuité est franchi —
+  // le client peut décocher manuellement s'il préfère venir chercher.
+  useEffect(() => {
+    if (subtotalHtg >= FREE_DELIVERY_THRESHOLD_HTG && !deliveryRequested) {
+      setDeliveryRequested(true);
+    }
+  }, [subtotalHtg, deliveryRequested]);
+
   const checkout = async () => {
     if (items.length === 0) return;
     if (!form.customer_name || !form.customer_email || !form.customer_phone || !form.customer_address || !form.customer_city) {
@@ -91,6 +99,7 @@ function CartPage() {
         items: items.map((i) => ({
           product_id: i.product.dbId,
           product_size_id: i.selectedSizeId ?? null,
+          product_color_id: i.selectedColorId ?? null,
           quantity: i.qty,
         })),
       });
@@ -138,7 +147,7 @@ function CartPage() {
           <ul className="divide-y divide-border border-y border-border">
             {items.map((item) => {
               const k = keyOf(item);
-              const { product, qty, selectedSizeLabel } = item;
+              const { product, qty, selectedSizeLabel, selectedColorLabel } = item;
               return (
                 <li key={k} className="flex gap-6 py-6">
                   <Link to="/product/$id" params={{ id: product.id }}>
@@ -159,6 +168,11 @@ function CartPage() {
                     {selectedSizeLabel && (
                       <span className="mt-1 text-xs text-muted-foreground">
                         Taille : <strong className="text-foreground">{selectedSizeLabel}</strong>
+                      </span>
+                    )}
+                    {selectedColorLabel && (
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        Couleur : <strong className="text-foreground">{selectedColorLabel}</strong>
                       </span>
                     )}
                     <div className="mt-auto flex items-center justify-between">
@@ -238,7 +252,7 @@ function CartPage() {
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Bravo — votre commande dépasse {FREE_DELIVERY_THRESHOLD_HTG.toLocaleString("fr-HT")} HTG, la livraison est <strong>offerte</strong>.
                   </p>
-                ) : amountToFreeDelivery > 0 ? (
+                ) : amountToFreeDeliveryHtg > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
                     Plus que <strong className="text-gold">{formatHtg(amountToFreeDeliveryHtg)}</strong> pour bénéficier de la livraison gratuite.
                   </p>

@@ -14,20 +14,31 @@ export interface CartItem {
   qty: number;
   selectedSizeId?: number;
   selectedSizeLabel?: string;
+  selectedColorId?: number;
+  selectedColorLabel?: string;
 }
 
-const STORAGE_KEY = "maison_cart_v2";
+const STORAGE_KEY = "maison_cart_v3";
 
-const itemKey = (item: CartItem) =>
-  item.selectedSizeId != null
-    ? `${item.product.id}#${item.selectedSizeId}`
-    : item.product.id;
+const itemKey = (item: CartItem) => {
+  const parts: (string | number)[] = [item.product.id];
+  if (item.selectedSizeId != null) parts.push(`s${item.selectedSizeId}`);
+  if (item.selectedColorId != null) parts.push(`c${item.selectedColorId}`);
+  return parts.join("#");
+};
 
 interface CartCtx {
   items: CartItem[];
   open: boolean;
   setOpen: (v: boolean) => void;
-  add: (product: Product, qty?: number, sizeId?: number, sizeLabel?: string) => void;
+  add: (
+    product: Product,
+    qty?: number,
+    sizeId?: number,
+    sizeLabel?: string,
+    colorId?: number,
+    colorLabel?: string,
+  ) => void;
   remove: (key: string) => void;
   setQty: (key: string, qty: number) => void;
   clear: () => void;
@@ -64,13 +75,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const add = useCallback(
-    (product: Product, qty = 1, sizeId?: number, sizeLabel?: string) => {
+    (
+      product: Product,
+      qty = 1,
+      sizeId?: number,
+      sizeLabel?: string,
+      colorId?: number,
+      colorLabel?: string,
+    ) => {
       setItems((prev) => {
         const newItem: CartItem = {
           product,
           qty,
           selectedSizeId: sizeId,
           selectedSizeLabel: sizeLabel,
+          selectedColorId: colorId,
+          selectedColorLabel: colorLabel,
         };
         const key = itemKey(newItem);
         const existing = prev.find((i) => itemKey(i) === key);

@@ -21,6 +21,14 @@ export interface ApiProductSize {
   is_active: boolean;
 }
 
+export interface ApiProductColor {
+  id: number;
+  color_label: string;
+  hex_code: string | null;
+  stock: number;
+  is_active: boolean;
+}
+
 export interface ApiProduct {
   id: number;
   slug: string;
@@ -35,16 +43,20 @@ export interface ApiProduct {
   is_bestseller: boolean;
   is_active: boolean;
   has_sizes: boolean;
+  has_colors: boolean;
   stock: number;
   sizes: ApiProductSize[];
+  colors: ApiProductColor[];
 }
 
 export interface ApiOrderItem {
   id: number;
   product_id: number | null;
   product_size_id: number | null;
+  product_color_id: number | null;
   product_name: string;
   size_label: string | null;
+  color_label: string | null;
   quantity: number;
   unit_price: string;
 }
@@ -161,6 +173,8 @@ export interface Product {
   status: ProductStatus;
   hasSizes: boolean;
   sizes: ApiProductSize[];
+  hasColors: boolean;
+  colors: ApiProductColor[];
   stock: number;
 }
 
@@ -182,6 +196,8 @@ export function toProduct(p: ApiProduct, categories?: ApiCategory[]): Product {
     status: p.status,
     hasSizes: p.has_sizes,
     sizes: p.sizes ?? [],
+    hasColors: p.has_colors ?? false,
+    colors: p.colors ?? [],
     stock: p.stock,
   };
 }

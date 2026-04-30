@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ImageUp, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { categoryApi, mediaApi, productApi, resolveImageUrl } from "@/lib/api";
-import type { ApiCategory, ApiProduct, ApiProductSize, ProductStatus } from "@/lib/api-types";
+import type { ApiCategory, ApiProduct, ApiProductColor, ApiProductSize, ProductStatus } from "@/lib/api-types";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -13,6 +13,13 @@ export const Route = createFileRoute("/admin/products/$id")({
 
 interface SizeRow {
   size_label: string;
+  stock: number;
+  is_active: boolean;
+}
+
+interface ColorRow {
+  color_label: string;
+  hex_code: string;
   stock: number;
   is_active: boolean;
 }
@@ -29,8 +36,10 @@ interface FormState {
   is_bestseller: boolean;
   is_active: boolean;
   has_sizes: boolean;
+  has_colors: boolean;
   stock: number;
   sizes: SizeRow[];
+  colors: ColorRow[];
 }
 
 const empty: FormState = {
@@ -45,8 +54,10 @@ const empty: FormState = {
   is_bestseller: false,
   is_active: true,
   has_sizes: false,
+  has_colors: false,
   stock: 0,
   sizes: [],
+  colors: [],
 };
 
 function fromApi(p: ApiProduct): FormState {
@@ -62,11 +73,18 @@ function fromApi(p: ApiProduct): FormState {
     is_bestseller: p.is_bestseller,
     is_active: p.is_active,
     has_sizes: p.has_sizes,
+    has_colors: p.has_colors ?? false,
     stock: p.stock,
     sizes: p.sizes.map((s: ApiProductSize) => ({
       size_label: s.size_label,
       stock: s.stock,
       is_active: s.is_active,
+    })),
+    colors: (p.colors ?? []).map((c: ApiProductColor) => ({
+      color_label: c.color_label,
+      hex_code: c.hex_code ?? "#000000",
+      stock: c.stock,
+      is_active: c.is_active,
     })),
   };
 }
@@ -147,11 +165,46 @@ function AdminProductForm() {
   const removeSize = (i: number) =>
     setForm((f) => ({ ...f, sizes: f.sizes.filter((_, idx) => idx !== i) }));
 
+  const addColor = () =>
+    setForm((f) => ({
+      ...f,
+      colors: [...f.colors, { color_label: "", hex_code: "#000000", stock: 0, is_active: true }],
+    }));
+
+  const updateColor = (i: number, k: keyof ColorRow, v: any) =>
+    setForm((f) => ({
+      ...f,
+      colors: f.colors.map((c, idx) => (idx === i ? { ...c, [k]: v } : c)),
+    }));
+
+  const removeColor = (i: number) =>
+    setForm((f) => ({ ...f, colors: f.colors.filter((_, idx) => idx !== i) }));
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.category_id) {
       toast.error("Sélectionnez une catégorie");
       return;
+    }
+    if (form.has_colors) {
+      const namedColors = form.colors.filter((c) => c.color_label.trim());
+      if (namedColors.length === 0) {
+        toast.error(
+          "Ajoutez au moins une couleur avec un nom (ex. « Rouge », « Bleu marine »).",
+        );
+        return;
+      }
+      if (namedColors.length < form.colors.length) {
+        toast.error("Chaque couleur doit avoir un nom — sinon retirez la ligne.");
+        return;
+      }
+    }
+    if (form.has_sizes) {
+      const namedSizes = form.sizes.filter((s) => s.size_label.trim());
+      if (namedSizes.length === 0) {
+        toast.error("Ajoutez au moins une taille.");
+        return;
+      }
     }
     setSaving(true);
     const payload = {
@@ -166,6 +219,7 @@ function AdminProductForm() {
       is_bestseller: form.is_bestseller,
       is_active: form.is_active,
       has_sizes: form.has_sizes,
+      has_colors: form.has_colors,
       stock: Number(form.stock) || 0,
       sizes: form.has_sizes
         ? form.sizes
@@ -174,6 +228,16 @@ function AdminProductForm() {
               size_label: s.size_label.trim(),
               stock: Number(s.stock) || 0,
               is_active: s.is_active,
+            }))
+        : [],
+      colors: form.has_colors
+        ? form.colors
+            .filter((c) => c.color_label.trim())
+            .map((c) => ({
+              color_label: c.color_label.trim(),
+              hex_code: c.hex_code || null,
+              stock: Number(c.stock) || 0,
+              is_active: c.is_active,
             }))
         : [],
     };
@@ -385,6 +449,76 @@ function AdminProductForm() {
               </div>
             </Card>
           )}
+
+          {form.has_colors && (
+            <Card title="Couleurs">
+              <p className="text-sm text-muted-foreground">
+                Ajoutez chaque couleur avec un <strong>nom</strong> (obligatoire), sa{" "}
+                <strong>pastille</strong> et son <strong>stock</strong>.
+                Le client la verra sous forme de pastille cliquable sur la fiche produit.
+              </p>
+              <div className="mt-4 space-y-3">
+                {form.colors.map((c, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-1 gap-3 border border-border/60 p-3 sm:grid-cols-[auto_1fr_120px_auto_auto] sm:items-end"
+                  >
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Pastille</span>
+                      <input
+                        type="color"
+                        value={c.hex_code || "#000000"}
+                        onChange={(e) => updateColor(i, "hex_code", e.target.value)}
+                        className="h-9 w-14 cursor-pointer border border-border bg-background"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        Nom de la couleur *
+                      </span>
+                      <input
+                        required={form.has_colors}
+                        placeholder="Ex. Rouge, Bleu marine, Noir…"
+                        value={c.color_label}
+                        onChange={(e) => updateColor(i, "color_label", e.target.value)}
+                        className={input}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Stock</span>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        value={c.stock}
+                        onChange={(e) => updateColor(i, "stock", Number(e.target.value))}
+                        className={input}
+                      />
+                    </label>
+                    <label className="inline-flex cursor-pointer items-center gap-2 text-xs sm:pb-2">
+                      <input
+                        type="checkbox"
+                        checked={c.is_active}
+                        onChange={(e) => updateColor(i, "is_active", e.target.checked)}
+                      />
+                      Actif
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeColor(i)}
+                      className="self-end justify-self-end text-muted-foreground hover:text-destructive sm:pb-2"
+                      aria-label="Supprimer cette couleur"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="outlineGold" size="sm" onClick={addColor}>
+                  <Plus className="mr-2 h-3.5 w-3.5" /> Ajouter une couleur
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -486,6 +620,11 @@ function AdminProductForm() {
               label="Le produit a des tailles (bagues, etc.)"
               checked={form.has_sizes}
               onChange={(v) => set("has_sizes", v)}
+            />
+            <Toggle
+              label="Le produit a des couleurs (maillots, etc.)"
+              checked={form.has_colors}
+              onChange={(v) => set("has_colors", v)}
             />
 
             {!form.has_sizes && (
