@@ -207,6 +207,8 @@ export interface CreateAdminPayload {
   username: string;
   email: string;
   password: string;
+  // "admin" (scoped) or "super_admin" (full access). Defaults server-side to "admin".
+  role?: "admin" | "super_admin";
   allowed_category_ids: number[];
   is_active?: boolean;
 }

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Pencil, Plus, Save, Trash2, X, UserPlus, Power } from "lucide-react";
+import { Crown, Loader2, Pencil, Save, Shield, Trash2, X, UserPlus, Power } from "lucide-react";
 import { categoryApi, userApi } from "@/lib/api";
 import type { ApiCategory, ApiUser } from "@/lib/api-types";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +16,7 @@ interface DraftAdmin {
   username: string;
   email: string;
   password: string;
+  role: "admin" | "super_admin";
   allowed_category_ids: number[];
   is_active: boolean;
 }
@@ -24,6 +25,7 @@ const blank: DraftAdmin = {
   username: "",
   email: "",
   password: "",
+  role: "admin",
   allowed_category_ids: [],
   is_active: true,
 };
@@ -96,10 +98,12 @@ function AdminUsers() {
           username: editing.username.trim(),
           email: editing.email.trim(),
           password: editing.password,
-          allowed_category_ids: editing.allowed_category_ids,
+          role: editing.role,
+          // super_admin n'a pas de scope — on envoie une liste vide
+          allowed_category_ids: editing.role === "super_admin" ? [] : editing.allowed_category_ids,
           is_active: editing.is_active,
         });
-        toast.success("Admin créé");
+        toast.success(editing.role === "super_admin" ? "Super-admin créé" : "Admin créé");
       }
       setEditing(null);
       reload();
@@ -145,11 +149,12 @@ function AdminUsers() {
         <div>
           <h1 className="font-display text-3xl">Utilisateurs / Admins</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Créez des comptes admin et restreignez leur portée à certaines catégories.
+            Créez des admins scopés ou d'autres super-admins. Les super-admins
+            ont accès à tout, les admins sont restreints à certaines catégories.
           </p>
         </div>
         <Button variant="luxe" onClick={() => setEditing({ ...blank })}>
-          <UserPlus className="mr-2 h-4 w-4" /> Nouvel admin
+          <UserPlus className="mr-2 h-4 w-4" /> Nouvel utilisateur
         </Button>
       </div>
 
@@ -159,7 +164,9 @@ function AdminUsers() {
         <div className="mb-6 border border-gold bg-card p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-xl">
-              {editing.id ? `Modifier admin · ${editing.username}` : "Nouvel admin"}
+              {editing.id
+                ? `Modifier · ${editing.username}`
+                : (editing.role === "super_admin" ? "Nouveau super-admin" : "Nouvel admin")}
             </h2>
             <button
               onClick={() => setEditing(null)}
@@ -171,48 +178,75 @@ function AdminUsers() {
           </div>
 
           {!editing.id && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Identifiant *">
-                <input
-                  value={editing.username}
-                  onChange={(e) => setEditing({ ...editing, username: e.target.value })}
-                  placeholder="ex. emma"
-                  className={input}
+            <>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field label="Identifiant *">
+                  <input
+                    value={editing.username}
+                    onChange={(e) => setEditing({ ...editing, username: e.target.value })}
+                    placeholder="ex. emma"
+                    className={input}
+                  />
+                </Field>
+                <Field label="Email *">
+                  <input
+                    type="email"
+                    value={editing.email}
+                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                    placeholder="emma@boteakelegans.com"
+                    className={input}
+                  />
+                </Field>
+                <Field label="Mot de passe *">
+                  <input
+                    type="password"
+                    value={editing.password}
+                    onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                    placeholder="8+ caractères : maj, min, chiffre, spécial"
+                    className={input}
+                  />
+                </Field>
+                <label className="flex items-end gap-2 pb-2">
+                  <input
+                    type="checkbox"
+                    checked={editing.is_active}
+                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                    className="h-4 w-4 accent-gold"
+                  />
+                  <span className="text-sm">Compte actif dès la création</span>
+                </label>
+              </div>
+
+              <h3 className="mt-6 text-xs uppercase tracking-[0.3em] text-gold">Type de compte</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <RoleOption
+                  active={editing.role === "admin"}
+                  onClick={() => setEditing({ ...editing, role: "admin" })}
+                  Icon={Shield}
+                  title="Admin scopé"
+                  desc="Accès limité aux catégories que vous lui attribuez ci-dessous. Idéal pour déléguer une partie du catalogue."
                 />
-              </Field>
-              <Field label="Email *">
-                <input
-                  type="email"
-                  value={editing.email}
-                  onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                  placeholder="emma@example.com"
-                  className={input}
+                <RoleOption
+                  active={editing.role === "super_admin"}
+                  onClick={() => setEditing({ ...editing, role: "super_admin" })}
+                  Icon={Crown}
+                  title="Super-admin"
+                  desc="Accès complet à la plateforme — produits, catégories, paramètres, autres admins. Aucune restriction."
                 />
-              </Field>
-              <Field label="Mot de passe *">
-                <input
-                  type="password"
-                  value={editing.password}
-                  onChange={(e) => setEditing({ ...editing, password: e.target.value })}
-                  placeholder="8+ caractères : maj, min, chiffre, spécial"
-                  className={input}
-                />
-              </Field>
-              <label className="flex items-end gap-2 pb-2">
-                <input
-                  type="checkbox"
-                  checked={editing.is_active}
-                  onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
-                  className="h-4 w-4 accent-gold"
-                />
-                <span className="text-sm">Compte actif dès la création</span>
-              </label>
-            </div>
+              </div>
+            </>
           )}
 
-          <h3 className="mt-6 text-xs uppercase tracking-[0.3em] text-gold">
-            Catégories autorisées (où il pourra ajouter des produits)
-          </h3>
+          {editing.role === "super_admin" && !editing.id ? (
+            <p className="mt-6 border border-gold/30 bg-gold/5 p-4 text-xs text-muted-foreground">
+              Un super-admin n'a pas de catégories restreintes — il a accès à
+              tout. Aucune sélection nécessaire ci-dessous.
+            </p>
+          ) : (
+            <>
+              <h3 className="mt-6 text-xs uppercase tracking-[0.3em] text-gold">
+                Catégories autorisées (où il pourra ajouter des produits)
+              </h3>
           <p className="mt-1 text-[11px] text-muted-foreground">
             Cochez les catégories feuilles. L'admin ne pourra créer / modifier des produits que dans ces catégories.
           </p>
@@ -254,6 +288,8 @@ function AdminUsers() {
               </div>
             )}
           </div>
+            </>
+          )}
 
           <div className="mt-6 flex justify-end gap-2">
             <Button type="button" variant="outlineGold" onClick={() => setEditing(null)}>
@@ -262,7 +298,7 @@ function AdminUsers() {
             <Button type="button" variant="luxe" disabled={saving} onClick={submit}>
               {saving
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement…</>
-                : <><Save className="mr-2 h-4 w-4" /> {editing.id ? "Sauvegarder catégories" : "Créer l'admin"}</>}
+                : <><Save className="mr-2 h-4 w-4" /> {editing.id ? "Sauvegarder catégories" : (editing.role === "super_admin" ? "Créer le super-admin" : "Créer l'admin")}</>}
             </Button>
           </div>
         </div>
@@ -289,10 +325,33 @@ function AdminUsers() {
             <tbody className="divide-y divide-border">
               {admins.map((u) => (
                 <tr key={u.id} className="hover:bg-card/40">
-                  <td className="p-3 font-medium">{u.username}</td>
+                  <td className="p-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      {u.role === "super_admin" ? (
+                        <span
+                          title="Super-admin — accès complet"
+                          className="inline-flex items-center gap-1 border border-gold bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-gold"
+                        >
+                          <Crown className="h-3 w-3" /> Super
+                        </span>
+                      ) : (
+                        <span
+                          title="Admin — scopé"
+                          className="inline-flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground"
+                        >
+                          <Shield className="h-3 w-3" /> Admin
+                        </span>
+                      )}
+                      <span>{u.username}</span>
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground">{u.email}</td>
                   <td className="p-3">
-                    {u.allowed_categories.length === 0 ? (
+                    {u.role === "super_admin" ? (
+                      <span className="text-xs text-gold italic">
+                        accès complet (toutes catégories)
+                      </span>
+                    ) : u.allowed_categories.length === 0 ? (
                       <span className="text-xs text-muted-foreground italic">
                         aucune (l'admin ne peut rien créer)
                       </span>
@@ -316,22 +375,25 @@ function AdminUsers() {
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() =>
-                          setEditing({
-                            id: u.id,
-                            username: u.username,
-                            email: u.email,
-                            password: "",
-                            allowed_category_ids: u.allowed_categories.map((c) => c.id),
-                            is_active: u.is_active,
-                          })
-                        }
-                        className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
-                        title="Modifier les catégories autorisées"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
+                      {u.role !== "super_admin" && (
+                        <button
+                          onClick={() =>
+                            setEditing({
+                              id: u.id,
+                              username: u.username,
+                              email: u.email,
+                              password: "",
+                              role: u.role as "admin" | "super_admin",
+                              allowed_category_ids: u.allowed_categories.map((c) => c.id),
+                              is_active: u.is_active,
+                            })
+                          }
+                          className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
+                          title="Modifier les catégories autorisées"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleStatus(u)}
                         className="inline-flex h-8 w-8 items-center justify-center border border-border text-muted-foreground hover:border-gold hover:text-gold"
@@ -367,5 +429,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+function RoleOption({
+  active,
+  onClick,
+  Icon,
+  title,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  Icon: typeof Crown;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-start gap-3 border p-4 text-left transition-colors ${
+        active
+          ? "border-gold bg-gold/10"
+          : "border-border hover:border-gold/60 hover:bg-card"
+      }`}
+    >
+      <Icon className={`h-5 w-5 shrink-0 ${active ? "text-gold" : "text-muted-foreground"}`} />
+      <div>
+        <p className={`text-sm font-medium ${active ? "text-gold" : ""}`}>{title}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{desc}</p>
+      </div>
+    </button>
   );
 }

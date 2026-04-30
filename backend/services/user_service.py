@@ -37,6 +37,7 @@ class UserService:
             email=data.email,
             hashed_password=hashed_password,
             allowed_category_ids=data.allowed_category_ids,
+            role=data.role,
             is_active=data.is_active,
         )
 

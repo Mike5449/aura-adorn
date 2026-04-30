@@ -50,19 +50,26 @@ class UserRepository:
         email: str,
         hashed_password: str,
         allowed_category_ids: list[int],
+        role: str = "admin",
         is_active: bool = True,
     ) -> User:
-        """Create an admin user with a scoped set of allowed categories."""
+        """
+        Create a privileged user (admin or super_admin).
+
+        super_admin has no category scope by definition — `allowed_category_ids`
+        is ignored when role is super_admin so the caller doesn't have to
+        remember to clear the field.
+        """
         from models.catalog import Category
 
         db_user = User(
             username=username,
             email=email,
             hashed_password=hashed_password,
-            role="admin",
+            role=role,
             is_active=is_active,
         )
-        if allowed_category_ids:
+        if role == "admin" and allowed_category_ids:
             cats = (
                 self.db.query(Category)
                 .filter(Category.id.in_(allowed_category_ids))
@@ -93,7 +100,13 @@ class UserRepository:
         return user
 
     def list_admins(self) -> list[User]:
-        return self.db.query(User).filter(User.role == "admin").order_by(User.id).all()
+        """List every privileged user — both admins and super_admins."""
+        return (
+            self.db.query(User)
+            .filter(User.role.in_(("admin", "super_admin")))
+            .order_by(User.role.desc(), User.id)
+            .all()
+        )
 
     # ------------------------------------------------------------------
     # Update (general — pass only the fields you want to change)

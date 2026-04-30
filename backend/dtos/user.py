@@ -126,8 +126,17 @@ class UserStatusUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 class AdminCreate(UserBase):
-    """Used by super_admin to create a scoped admin user."""
+    """
+    Used by super_admin to create another privileged user.
+
+    `role` may be:
+      - "admin"        — scoped admin, restricted to `allowed_category_ids`
+      - "super_admin"  — full access (no scope; allowed_category_ids ignored)
+
+    Defaults to "admin" so the existing flow keeps working unchanged.
+    """
     password: str
+    role: str = "admin"
     allowed_category_ids: List[int] = []
     is_active: bool = True
 
@@ -135,6 +144,13 @@ class AdminCreate(UserBase):
     @classmethod
     def password_strength(cls, v: str) -> str:
         return _validate_password(v)
+
+    @field_validator("role")
+    @classmethod
+    def role_valid(cls, v: str) -> str:
+        if v not in ("admin", "super_admin"):
+            raise ValueError("Role must be 'admin' or 'super_admin'")
+        return v
 
 
 class AdminAllowedCategoriesUpdate(BaseModel):
