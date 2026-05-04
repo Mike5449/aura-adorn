@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Copy, MailIcon, MessageCircle, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -65,13 +66,36 @@ export default function ShareCartDialog({
     }
   };
 
-  return (
+  // Lock body scroll + close on Escape while the dialog is open.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevPointerEvents = document.body.style.pointerEvents;
+    document.body.style.overflow = "hidden";
+    // Some Radix-based parents (Sheet/Dialog) flip body to pointer-events:none —
+    // force it back so the portal-rendered dialog stays clickable.
+    document.body.style.pointerEvents = "auto";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.pointerEvents = prevPointerEvents;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  // Portal target — only available on the client.
+  if (typeof document === "undefined") return null;
+
+  const dialog = (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Partager mon panier"
+      style={{ pointerEvents: "auto" }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -172,4 +196,8 @@ export default function ShareCartDialog({
       </div>
     </div>
   );
+
+  // Render at the document root so the dialog escapes any parent's
+  // pointer-events / focus-trap (Radix Sheet, etc.).
+  return createPortal(dialog, document.body);
 }

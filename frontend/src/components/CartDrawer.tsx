@@ -13,6 +13,7 @@ export default function CartDrawer() {
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent className="flex w-full flex-col bg-card sm:max-w-md">
         <SheetHeader>
@@ -83,7 +84,13 @@ export default function CartDrawer() {
               </Button>
               <button
                 type="button"
-                onClick={() => setShareOpen(true)}
+                onClick={() => {
+                  // Close the slide-over before opening the share dialog so
+                  // the dialog isn't fighting Radix's overlay for pointer
+                  // events (especially on mobile).
+                  setOpen(false);
+                  setShareOpen(true);
+                }}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 border border-border bg-transparent px-4 py-2.5 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-gold hover:text-gold"
               >
                 <Share2 className="h-3.5 w-3.5" /> Partager mon panier
@@ -92,7 +99,8 @@ export default function CartDrawer() {
           </>
         )}
       </SheetContent>
-      {shareOpen && <ShareCartDialog items={items} onClose={() => setShareOpen(false)} />}
     </Sheet>
+    {shareOpen && <ShareCartDialog items={items} onClose={() => setShareOpen(false)} />}
+    </>
   );
 }
