@@ -90,6 +90,9 @@ class OrderResponse(BaseModel):
     # Commission collected by the platform on this order — computed from
     # each item owner's current commission_pct. 0 for unpaid orders.
     platform_commission_htg: Decimal = Decimal("0")
+    # User ids of the admins whose products are in this order (usually one).
+    # Used by the admin UI to group / filter orders by seller.
+    owner_user_ids: List[int] = []
     currency: str
 
     status: str

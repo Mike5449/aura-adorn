@@ -410,8 +410,13 @@ export interface CreateOrderPayload {
 export const orderApi = {
   create: (data: CreateOrderPayload) =>
     apiFetch<ApiOrder>("/orders/", { method: "POST", body: data }),
-  list: (status?: OrderStatus) =>
-    apiFetch<ApiOrder[]>(`/orders/${status ? `?status=${status}` : ""}`, { auth: true }),
+  list: (params: { status?: OrderStatus; owner_id?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.owner_id != null) qs.set("owner_id", String(params.owner_id));
+    const q = qs.toString();
+    return apiFetch<ApiOrder[]>(`/orders/${q ? `?${q}` : ""}`, { auth: true });
+  },
   get: (id: number) => apiFetch<ApiOrder>(`/orders/${id}`, { auth: true }),
   getByNumber: (orderNumber: string) =>
     apiFetch<ApiOrder>(`/orders/by-number/${encodeURIComponent(orderNumber)}`),

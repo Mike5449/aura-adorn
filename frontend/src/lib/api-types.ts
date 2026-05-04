@@ -86,6 +86,7 @@ export interface ApiOrder {
   exchange_rate_used: string | null;
   total_amount: string;
   platform_commission_htg: string;
+  owner_user_ids: number[];
   currency: string;
   status: OrderStatus;
   payment_method: string;

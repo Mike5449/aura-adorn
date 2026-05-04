@@ -200,16 +200,24 @@ def get_by_number(
     description=(
         "**Permission required:** `orders:list`. "
         "When called with an `admin` JWT, the list is scoped to orders that "
-        "contain at least one product owned by the admin. super_admin sees all."
+        "contain at least one product owned by the admin. super_admin sees "
+        "all by default and can pass `?owner_id=N` to restrict the list to "
+        "orders that contain at least one product owned by admin N."
     ),
 )
 def list_orders(
     status_filter: Optional[str] = Query(None, alias="status"),
+    owner_id_filter: Optional[int] = Query(None, alias="owner_id"),
     current_user=Depends(require_permission(Permission.ORDERS_LIST)),
     service: OrderService = Depends(get_order_service),
 ):
-    owner_id = current_user.id if current_user.role == "admin" else None
-    return service.list(status=status_filter, owner_id=owner_id)
+    # admin role is always scoped to their own orders, regardless of any
+    # owner_id query param the client tries to send.
+    if current_user.role == "admin":
+        effective_owner = current_user.id
+    else:
+        effective_owner = owner_id_filter
+    return service.list(status=status_filter, owner_id=effective_owner)
 
 
 @router.get(

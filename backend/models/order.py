@@ -85,6 +85,23 @@ class Order(Base):
     )
 
     @property
+    def owner_user_ids(self) -> list[int]:
+        """
+        Distinct admin user_ids whose products are part of this order.
+        In practice an order is composed of products from one admin —
+        we still return a list to handle the rare cross-admin cart.
+        """
+        seen: set[int] = set()
+        out: list[int] = []
+        for item in self.items:
+            product = getattr(item, "product", None)
+            owner_id = getattr(product, "created_by_user_id", None) if product else None
+            if owner_id and owner_id not in seen:
+                seen.add(owner_id)
+                out.append(owner_id)
+        return out
+
+    @property
     def platform_commission_htg(self) -> "Decimal":  # type: ignore[name-defined]
         """
         Total commission collected by the platform (super_admin) on this
