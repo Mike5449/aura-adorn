@@ -210,6 +210,8 @@ export interface CreateAdminPayload {
   // "admin" (scoped) or "super_admin" (full access). Defaults server-side to "admin".
   role?: "admin" | "super_admin";
   allowed_category_ids: number[];
+  /** Platform commission % super_admin collects on this admin's sales (0–100). */
+  commission_pct?: number;
   is_active?: boolean;
 }
 
@@ -221,6 +223,18 @@ import type { ApiPublicSettings, ApiStock } from "./api-types";
 
 export const settingsApi = {
   getPublic: () => apiFetch<ApiPublicSettings>("/settings/public"),
+  updateDeliveryFee: (fee_htg: number) =>
+    apiFetch<ApiPublicSettings>("/settings/delivery-fee", {
+      method: "PATCH",
+      body: { fee_htg: String(fee_htg) },
+      auth: true,
+    }),
+  updateFreeDeliveryThreshold: (threshold_htg: number) =>
+    apiFetch<ApiPublicSettings>("/settings/free-delivery-threshold", {
+      method: "PATCH",
+      body: { threshold_htg: String(threshold_htg) },
+      auth: true,
+    }),
   updateExchangeRate: (rate: number) =>
     apiFetch<ApiPublicSettings>("/settings/exchange-rate", {
       method: "PATCH",
@@ -271,6 +285,12 @@ export const userApi = {
     apiFetch<ApiUser>(`/users/${userId}/allowed-categories`, {
       method: "PATCH",
       body: { allowed_category_ids: categoryIds },
+      auth: true,
+    }),
+  setCommission: (userId: number, commission_pct: number) =>
+    apiFetch<ApiUser>(`/users/${userId}/commission`, {
+      method: "PATCH",
+      body: { commission_pct: String(commission_pct) },
       auth: true,
     }),
   setStatus: (userId: number, isActive: boolean) =>

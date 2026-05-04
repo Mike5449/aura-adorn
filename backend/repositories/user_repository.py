@@ -52,6 +52,7 @@ class UserRepository:
         allowed_category_ids: list[int],
         role: str = "admin",
         is_active: bool = True,
+        commission_pct: Optional[float] = None,
     ) -> User:
         """
         Create a privileged user (admin or super_admin).
@@ -60,6 +61,7 @@ class UserRepository:
         is ignored when role is super_admin so the caller doesn't have to
         remember to clear the field.
         """
+        from decimal import Decimal
         from models.catalog import Category
 
         db_user = User(
@@ -68,6 +70,7 @@ class UserRepository:
             hashed_password=hashed_password,
             role=role,
             is_active=is_active,
+            commission_pct=Decimal(str(commission_pct)) if commission_pct is not None else Decimal("0"),
         )
         if role == "admin" and allowed_category_ids:
             cats = (
@@ -80,6 +83,16 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(db_user)
         return db_user
+
+    def set_commission_pct(self, user_id: int, pct: float) -> Optional[User]:
+        from decimal import Decimal
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.commission_pct = Decimal(str(pct))
+        self.db.commit()
+        self.db.refresh(user)
+        return user
 
     def set_allowed_categories(self, user_id: int, category_ids: list[int]) -> Optional[User]:
         from models.catalog import Category

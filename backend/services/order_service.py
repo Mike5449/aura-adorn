@@ -100,11 +100,14 @@ def _is_delivery_eligible_city(city: str) -> bool:
     return bool(keyword) and keyword in (city or "").strip().lower()
 
 
-def _compute_delivery_fee(subtotal: Decimal) -> Decimal:
-    threshold = Decimal(str(settings.FREE_DELIVERY_THRESHOLD_HTG))
+def _compute_delivery_fee(
+    subtotal: Decimal,
+    fee: Decimal,
+    threshold: Decimal,
+) -> Decimal:
     if subtotal >= threshold:
         return Decimal("0")
-    return Decimal(str(settings.DELIVERY_FEE_HTG))
+    return fee
 
 
 def _generate_order_number() -> str:
@@ -166,14 +169,20 @@ class OrderService:
         # and the free-delivery threshold remain in HTG (local).
         items, subtotal_usd = self._build_items_and_total(data.items)
 
-        rate = SettingRepository(self.repo.db).get_exchange_rate()
+        repo = SettingRepository(self.repo.db)
+        rate = repo.get_exchange_rate()
         subtotal_htg = (subtotal_usd * rate).quantize(Decimal("0.01"))
 
         delivery_fee = Decimal("0")
         if data.delivery_requested:
-            # Delivery is now offered in any city. The flat fee + free-delivery
-            # threshold still apply globally.
-            delivery_fee = _compute_delivery_fee(subtotal_htg)
+            # Delivery is now offered in any city. Fee + free-delivery
+            # threshold come from app_settings so the super_admin can edit
+            # them at runtime.
+            delivery_fee = _compute_delivery_fee(
+                subtotal_htg,
+                fee=repo.get_delivery_fee_htg(),
+                threshold=repo.get_free_delivery_threshold_htg(),
+            )
 
         total_htg = subtotal_htg + delivery_fee
 

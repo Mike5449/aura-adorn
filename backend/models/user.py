@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -15,6 +15,11 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     role = Column(String(50), default="staff", nullable=False)  # super_admin, admin, manager, staff
+
+    # Commission % the platform (super_admin) earns on each paid order that
+    # contains products owned by this admin. Stored per-admin so the rate
+    # can be negotiated individually. Ignored for non-admin roles.
+    commission_pct = Column(Numeric(5, 2), default=0, nullable=False, server_default="0")
 
     # Brute-force protection
     failed_login_attempts = Column(Integer, default=0, nullable=False)

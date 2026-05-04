@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Loader2, ImageOff } from "lucide-react";
 import { orderApi, resolveImageUrl } from "@/lib/api";
 import type { ApiOrder, OrderStatus } from "@/lib/api-types";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/admin/orders")({
   component: AdminOrders,
@@ -34,10 +35,18 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 };
 
 function AdminOrders() {
+  const { isSuperAdmin } = useAuth();
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [selected, setSelected] = useState<ApiOrder | null>(null);
+
+  // Total platform commission across the currently filtered, paid orders.
+  const totalCommission = useMemo(() => {
+    return orders
+      .filter((o) => o.payment_status === "success")
+      .reduce((sum, o) => sum + Number(o.platform_commission_htg ?? 0), 0);
+  }, [orders]);
 
   const reload = async () => {
     setLoading(true);
@@ -74,6 +83,17 @@ function AdminOrders() {
         Suivi des paiements MonCash et de l'expédition. <strong>Cliquez sur une ligne</strong> pour voir le détail (articles, client, livraison) et changer le statut.
       </p>
 
+      {isSuperAdmin && totalCommission > 0 && (
+        <div className="mt-4 inline-flex items-center gap-3 border border-gold/40 bg-gold/5 px-4 py-2 text-sm">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Commission plateforme (commandes affichées)
+          </span>
+          <strong className="font-display text-lg text-gold">
+            {totalCommission.toLocaleString("fr-HT", { maximumFractionDigits: 0 })} HTG
+          </strong>
+        </div>
+      )}
+
       <div className="gold-divider my-6" />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -108,6 +128,7 @@ function AdminOrders() {
                 <th className="p-3">Articles</th>
                 <th className="p-3">Total</th>
                 <th className="p-3">Paiement</th>
+                {isSuperAdmin && <th className="p-3">Commission</th>}
                 <th className="p-3">Statut</th>
                 <th className="p-3">Date</th>
                 <th className="p-3"></th>
@@ -172,6 +193,17 @@ function AdminOrders() {
                         {o.payment_method.toUpperCase()} · {o.payment_status}
                       </span>
                     </td>
+                    {isSuperAdmin && (
+                      <td className="p-3 text-sm">
+                        {Number(o.platform_commission_htg ?? 0) > 0 ? (
+                          <span className="font-medium text-gold">
+                            {Number(o.platform_commission_htg).toLocaleString("fr-HT", { maximumFractionDigits: 0 })} HTG
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="p-3">
                       <span className={`inline-block rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${STATUS_COLOR[o.status]}`}>
                         {STATUS_LABEL[o.status]}

@@ -18,6 +18,7 @@ interface DraftAdmin {
   password: string;
   role: "admin" | "super_admin";
   allowed_category_ids: number[];
+  commission_pct: number;
   is_active: boolean;
 }
 
@@ -27,6 +28,7 @@ const blank: DraftAdmin = {
   password: "",
   role: "admin",
   allowed_category_ids: [],
+  commission_pct: 0,
   is_active: true,
 };
 
@@ -85,9 +87,11 @@ function AdminUsers() {
     setSaving(true);
     try {
       if (editing.id) {
-        // Update only allowed_categories (creating an admin is full create flow)
+        // Update both allowed_categories AND commission in sequence —
+        // either is independent server-side; we just call both.
         await userApi.updateAllowedCategories(editing.id, editing.allowed_category_ids);
-        toast.success("Catégories autorisées mises à jour");
+        await userApi.setCommission(editing.id, editing.commission_pct);
+        toast.success("Admin mis à jour");
       } else {
         if (!editing.username || !editing.email || !editing.password) {
           toast.error("Tous les champs sont requis");
@@ -101,6 +105,7 @@ function AdminUsers() {
           role: editing.role,
           // super_admin n'a pas de scope — on envoie une liste vide
           allowed_category_ids: editing.role === "super_admin" ? [] : editing.allowed_category_ids,
+          commission_pct: editing.commission_pct,
           is_active: editing.is_active,
         });
         toast.success(editing.role === "super_admin" ? "Super-admin créé" : "Admin créé");
@@ -237,6 +242,32 @@ function AdminUsers() {
             </>
           )}
 
+          {/* Commission — applies to admin and super_admin */}
+          <h3 className="mt-6 text-xs uppercase tracking-[0.3em] text-gold">
+            Commission de la plateforme
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Pourcentage prélevé par la boutique (super_admin) sur chaque commande payée
+            contenant un produit appartenant à cet admin. 0 % = pas de commission.
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step="0.5"
+              value={editing.commission_pct}
+              onChange={(e) =>
+                setEditing({
+                  ...editing,
+                  commission_pct: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                })
+              }
+              className="w-32 border border-border bg-background px-3 py-2 text-lg focus:border-gold focus:outline-none"
+            />
+            <span className="font-display text-lg text-gold">%</span>
+          </div>
+
           {editing.role === "super_admin" && !editing.id ? (
             <p className="mt-6 border border-gold/30 bg-gold/5 p-4 text-xs text-muted-foreground">
               Un super-admin n'a pas de catégories restreintes — il a accès à
@@ -318,6 +349,7 @@ function AdminUsers() {
                 <th className="p-3">Admin</th>
                 <th className="p-3">Email</th>
                 <th className="p-3">Catégories autorisées</th>
+                <th className="p-3">Commission</th>
                 <th className="p-3">Statut</th>
                 <th className="p-3"></th>
               </tr>
@@ -369,6 +401,15 @@ function AdminUsers() {
                     )}
                   </td>
                   <td className="p-3">
+                    {Number(u.commission_pct ?? 0) > 0 ? (
+                      <span className="font-display text-base text-gold">
+                        {Number(u.commission_pct).toLocaleString("fr-HT", { maximumFractionDigits: 2 })} %
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">aucune</span>
+                    )}
+                  </td>
+                  <td className="p-3">
                     <span className={`rounded border px-2 py-0.5 text-[11px] uppercase tracking-widest ${u.is_active ? "border-emerald-500/40 text-emerald-400" : "border-destructive/40 text-destructive"}`}>
                       {u.is_active ? "Actif" : "Désactivé"}
                     </span>
@@ -385,6 +426,7 @@ function AdminUsers() {
                               password: "",
                               role: u.role as "admin" | "super_admin",
                               allowed_category_ids: u.allowed_categories.map((c) => c.id),
+                              commission_pct: Number(u.commission_pct ?? 0),
                               is_active: u.is_active,
                             })
                           }

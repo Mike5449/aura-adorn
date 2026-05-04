@@ -84,6 +84,28 @@ class Order(Base):
         order_by="Payment.created_at.desc()",
     )
 
+    @property
+    def platform_commission_htg(self) -> "Decimal":  # type: ignore[name-defined]
+        """
+        Total commission collected by the platform (super_admin) on this
+        order, in HTG. Computed from each item's owning admin's current
+        commission_pct. Returns 0 for unpaid orders.
+        """
+        from decimal import Decimal
+        if self.payment_status != PAYMENT_STATUS_SUCCESS:
+            return Decimal("0")
+        rate = Decimal(self.exchange_rate_used) if self.exchange_rate_used else Decimal("1")
+        commission_usd = Decimal("0")
+        for item in self.items:
+            product = getattr(item, "product", None)
+            owner = getattr(product, "created_by", None) if product else None
+            pct = Decimal(owner.commission_pct) if owner and owner.commission_pct else Decimal("0")
+            if pct <= 0:
+                continue
+            line_usd = Decimal(item.unit_price) * Decimal(item.quantity)
+            commission_usd += line_usd * pct / Decimal("100")
+        return (commission_usd * rate).quantize(Decimal("0.01"))
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -105,6 +127,13 @@ class OrderItem(Base):
     unit_price = Column(Numeric(10, 2), nullable=False)
 
     order = relationship("Order", back_populates="items")
+    # Loaded with the item so the order-detail view can compute the
+    # platform commission by walking item -> product -> created_by.
+    product = relationship(
+        "Product",
+        foreign_keys=[product_id],
+        lazy="joined",
+    )
 
 
 class Payment(Base):

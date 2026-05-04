@@ -1,7 +1,8 @@
 import re
+from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 VALID_ROLES = {"super_admin", "admin", "manager", "staff"}
 
@@ -138,6 +139,7 @@ class AdminCreate(UserBase):
     password: str
     role: str = "admin"
     allowed_category_ids: List[int] = []
+    commission_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100)
     is_active: bool = True
 
     @field_validator("password")
@@ -168,10 +170,16 @@ class CategoryRef(BaseModel):
         from_attributes = True
 
 
+class AdminCommissionUpdate(BaseModel):
+    """Super-admin patches a single admin's commission percentage."""
+    commission_pct: Decimal = Field(ge=0, le=100)
+
+
 class UserResponse(UserBase):
     id: int
     is_active: bool
     role: str
+    commission_pct: Decimal = Decimal("0")
     allowed_categories: List[CategoryRef] = []
 
     class Config:

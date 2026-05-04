@@ -87,6 +87,9 @@ class OrderResponse(BaseModel):
     subtotal_usd: Optional[Decimal] = None
     exchange_rate_used: Optional[Decimal] = None
     total_amount: Decimal
+    # Commission collected by the platform on this order — computed from
+    # each item owner's current commission_pct. 0 for unpaid orders.
+    platform_commission_htg: Decimal = Decimal("0")
     currency: str
 
     status: str

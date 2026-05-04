@@ -6,6 +6,7 @@ from core.security import get_current_active_user
 from database import get_db
 from dtos.user import (
     AdminAllowedCategoriesUpdate,
+    AdminCommissionUpdate,
     AdminCreate,
     UserAdminUpdate,
     UserCreate,
@@ -245,3 +246,23 @@ def update_allowed_categories(
     service: UserService = Depends(get_user_service),
 ):
     return service.set_allowed_categories(user_id, data.allowed_category_ids)
+
+
+@router.patch(
+    "/{user_id}/commission",
+    response_model=UserResponse,
+    summary="Update the platform commission % for an admin (super_admin)",
+    description=(
+        "Sets the percentage of each paid order's order-items owned by this "
+        "admin that the platform (super_admin) collects. Range: 0–100. "
+        "Only meaningful for users with role admin or super_admin."
+    ),
+    responses={401: _401, 403: _403, 404: _404},
+    dependencies=[Depends(require_permission(Permission.USERS_UPDATE))],
+)
+def update_commission(
+    user_id: int,
+    data: AdminCommissionUpdate,
+    service: UserService = Depends(get_user_service),
+):
+    return service.set_commission_pct(user_id, float(data.commission_pct))

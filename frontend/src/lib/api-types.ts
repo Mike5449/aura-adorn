@@ -65,6 +65,8 @@ export interface ApiOrderItem {
 
 export interface ApiPublicSettings {
   exchange_rate_htg_per_usd: string;
+  delivery_fee_htg: string;
+  free_delivery_threshold_htg: string;
 }
 
 export interface ApiOrder {
@@ -83,6 +85,7 @@ export interface ApiOrder {
   subtotal_usd: string | null;
   exchange_rate_used: string | null;
   total_amount: string;
+  platform_commission_htg: string;
   currency: string;
   status: OrderStatus;
   payment_method: string;
@@ -129,6 +132,9 @@ export interface ApiUser {
   email: string;
   is_active: boolean;
   role: "super_admin" | "admin" | "manager" | "staff";
+  /** Platform commission % collected by super_admin on each paid order
+   *  containing items owned by this admin. Decimal serialized as string. */
+  commission_pct: string;
   allowed_categories: ApiCategoryRef[];
 }
 

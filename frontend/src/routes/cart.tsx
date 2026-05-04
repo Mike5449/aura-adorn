@@ -2,9 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/context/CartContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
-  DELIVERY_FEE_HTG,
-  FREE_DELIVERY_THRESHOLD_HTG,
-  computeDeliveryFee,
   formatHtg,
   formatUsd,
   toProduct,
@@ -55,7 +52,7 @@ const emptyForm: CheckoutForm = {
 
 function CartPage() {
   const { items, setQty, remove, total, clear, add, keyOf } = useCart();
-  const { exchangeRate } = useSettings();
+  const { exchangeRate, deliveryFeeHtg, freeDeliveryThresholdHtg } = useSettings();
   const search = Route.useSearch();
   const [form, setForm] = useState<CheckoutForm>(emptyForm);
   const [deliveryRequested, setDeliveryRequested] = useState(false);
@@ -131,18 +128,22 @@ function CartPage() {
   // `total` is the catalog total in USD (cart stores USD prices).
   const subtotalUsd = total;
   const subtotalHtg = usdToHtg(subtotalUsd, exchangeRate);
-  const deliveryFee = computeDeliveryFee(subtotalHtg, deliveryRequested);
-  const deliveryIsFree = deliveryRequested && subtotalHtg >= FREE_DELIVERY_THRESHOLD_HTG;
+  const deliveryIsFree = deliveryRequested && subtotalHtg >= freeDeliveryThresholdHtg;
+  const deliveryFee = !deliveryRequested
+    ? 0
+    : deliveryIsFree
+      ? 0
+      : deliveryFeeHtg;
   const finalTotalHtg = subtotalHtg + deliveryFee;
-  const amountToFreeDeliveryHtg = Math.max(0, FREE_DELIVERY_THRESHOLD_HTG - subtotalHtg);
+  const amountToFreeDeliveryHtg = Math.max(0, freeDeliveryThresholdHtg - subtotalHtg);
 
   // Auto-cocher la livraison dès que le seuil de gratuité est franchi —
   // le client peut décocher manuellement s'il préfère venir chercher.
   useEffect(() => {
-    if (subtotalHtg >= FREE_DELIVERY_THRESHOLD_HTG && !deliveryRequested) {
+    if (subtotalHtg >= freeDeliveryThresholdHtg && !deliveryRequested) {
       setDeliveryRequested(true);
     }
-  }, [subtotalHtg, deliveryRequested]);
+  }, [subtotalHtg, deliveryRequested, freeDeliveryThresholdHtg]);
 
   const checkout = async () => {
     if (items.length === 0) return;
@@ -318,7 +319,7 @@ function CartPage() {
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   <MapPin className="mr-1 inline h-3 w-3" />
-                  Frais : <strong>{DELIVERY_FEE_HTG} HTG</strong> · Offerte à partir de <strong>{FREE_DELIVERY_THRESHOLD_HTG.toLocaleString("fr-HT")} HTG</strong>.
+                  Frais : <strong>{deliveryFeeHtg.toLocaleString("fr-HT")} HTG</strong> · Offerte à partir de <strong>{freeDeliveryThresholdHtg.toLocaleString("fr-HT")} HTG</strong>.
                 </p>
               </div>
             </label>
@@ -328,7 +329,7 @@ function CartPage() {
                 {deliveryIsFree ? (
                   <p className="flex items-center gap-2 text-xs text-emerald-400">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Bravo — votre commande dépasse {FREE_DELIVERY_THRESHOLD_HTG.toLocaleString("fr-HT")} HTG, la livraison est <strong>offerte</strong>.
+                    Bravo — votre commande dépasse {freeDeliveryThresholdHtg.toLocaleString("fr-HT")} HTG, la livraison est <strong>offerte</strong>.
                   </p>
                 ) : amountToFreeDeliveryHtg > 0 ? (
                   <p className="text-[11px] text-muted-foreground">

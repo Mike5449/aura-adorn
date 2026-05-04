@@ -3,7 +3,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from models.setting import KEY_EXCHANGE_RATE, DEFAULT_EXCHANGE_RATE, Setting
+from models.setting import (
+    DEFAULT_DELIVERY_FEE_HTG,
+    DEFAULT_EXCHANGE_RATE,
+    DEFAULT_FREE_DELIVERY_THRESHOLD_HTG,
+    KEY_DELIVERY_FEE_HTG,
+    KEY_EXCHANGE_RATE,
+    KEY_FREE_DELIVERY_THRESHOLD_HTG,
+    Setting,
+)
 
 
 class SettingRepository:
@@ -44,4 +52,34 @@ class SettingRepository:
             KEY_EXCHANGE_RATE,
             str(rate),
             description="Number of HTG per 1 USD used when converting catalog prices at checkout",
+        )
+
+    # ---- Delivery configuration ----
+
+    def get_delivery_fee_htg(self) -> Decimal:
+        raw = self.get_value(KEY_DELIVERY_FEE_HTG, DEFAULT_DELIVERY_FEE_HTG)
+        try:
+            return Decimal(raw)
+        except Exception:
+            return Decimal(DEFAULT_DELIVERY_FEE_HTG)
+
+    def set_delivery_fee_htg(self, fee: Decimal) -> Setting:
+        return self.set(
+            KEY_DELIVERY_FEE_HTG,
+            str(fee),
+            description="Flat HTG fee charged when the customer ticks 'home delivery'",
+        )
+
+    def get_free_delivery_threshold_htg(self) -> Decimal:
+        raw = self.get_value(KEY_FREE_DELIVERY_THRESHOLD_HTG, DEFAULT_FREE_DELIVERY_THRESHOLD_HTG)
+        try:
+            return Decimal(raw)
+        except Exception:
+            return Decimal(DEFAULT_FREE_DELIVERY_THRESHOLD_HTG)
+
+    def set_free_delivery_threshold_htg(self, threshold: Decimal) -> Setting:
+        return self.set(
+            KEY_FREE_DELIVERY_THRESHOLD_HTG,
+            str(threshold),
+            description="Subtotal in HTG above which delivery becomes free",
         )

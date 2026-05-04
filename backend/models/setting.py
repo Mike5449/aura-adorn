@@ -27,3 +27,9 @@ class Setting(Base):
 # Well-known keys
 KEY_EXCHANGE_RATE = "exchange_rate_htg_per_usd"
 DEFAULT_EXCHANGE_RATE = "130"  # 1 USD ≈ 130 HTG (override via /admin/settings)
+
+KEY_DELIVERY_FEE_HTG = "delivery_fee_htg"
+DEFAULT_DELIVERY_FEE_HTG = "150"  # flat HTG fee when delivery is requested
+
+KEY_FREE_DELIVERY_THRESHOLD_HTG = "free_delivery_threshold_htg"
+DEFAULT_FREE_DELIVERY_THRESHOLD_HTG = "2500"  # delivery becomes free above this subtotal

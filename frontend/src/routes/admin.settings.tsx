@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, DollarSign } from "lucide-react";
+import { Loader2, Save, DollarSign, Truck } from "lucide-react";
 import { settingsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
@@ -13,11 +13,22 @@ export const Route = createFileRoute("/admin/settings")({
 
 function AdminSettings() {
   const { isSuperAdmin, loading: authLoading } = useAuth();
-  const { exchangeRate, setExchangeRateValue, refresh } = useSettings();
+  const {
+    exchangeRate,
+    deliveryFeeHtg,
+    freeDeliveryThresholdHtg,
+    setExchangeRateValue,
+    setDeliveryFeeValue,
+    setFreeDeliveryThresholdValue,
+    refresh,
+  } = useSettings();
   const navigate = useNavigate();
 
   const [rate, setRate] = useState<string>(String(exchangeRate));
-  const [saving, setSaving] = useState(false);
+  const [fee, setFee] = useState<string>(String(deliveryFeeHtg));
+  const [threshold, setThreshold] = useState<string>(String(freeDeliveryThresholdHtg));
+  const [savingRate, setSavingRate] = useState(false);
+  const [savingDelivery, setSavingDelivery] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isSuperAdmin) {
@@ -26,17 +37,17 @@ function AdminSettings() {
     }
   }, [authLoading, isSuperAdmin, navigate]);
 
-  useEffect(() => {
-    setRate(String(exchangeRate));
-  }, [exchangeRate]);
+  useEffect(() => { setRate(String(exchangeRate)); }, [exchangeRate]);
+  useEffect(() => { setFee(String(deliveryFeeHtg)); }, [deliveryFeeHtg]);
+  useEffect(() => { setThreshold(String(freeDeliveryThresholdHtg)); }, [freeDeliveryThresholdHtg]);
 
-  const save = async () => {
+  const saveRate = async () => {
     const n = Number(rate);
     if (!Number.isFinite(n) || n <= 0) {
       toast.error("Le taux doit être un nombre positif");
       return;
     }
-    setSaving(true);
+    setSavingRate(true);
     try {
       const updated = await settingsApi.updateExchangeRate(n);
       const newRate = Number(updated.exchange_rate_htg_per_usd);
@@ -46,7 +57,35 @@ function AdminSettings() {
     } catch (e: any) {
       toast.error(e?.message ?? "Erreur de mise à jour");
     } finally {
-      setSaving(false);
+      setSavingRate(false);
+    }
+  };
+
+  const saveDelivery = async () => {
+    const f = Number(fee);
+    const t = Number(threshold);
+    if (!Number.isFinite(f) || f < 0) {
+      toast.error("Les frais de livraison doivent être positifs ou nuls");
+      return;
+    }
+    if (!Number.isFinite(t) || t < 0) {
+      toast.error("Le seuil de gratuité doit être positif ou nul");
+      return;
+    }
+    setSavingDelivery(true);
+    try {
+      // Two PATCHes — the backend supports them independently so we do them
+      // in sequence, surfacing whichever errors first.
+      let updated = await settingsApi.updateDeliveryFee(f);
+      updated = await settingsApi.updateFreeDeliveryThreshold(t);
+      setDeliveryFeeValue(Number(updated.delivery_fee_htg));
+      setFreeDeliveryThresholdValue(Number(updated.free_delivery_threshold_htg));
+      await refresh();
+      toast.success("Livraison mise à jour.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erreur de mise à jour");
+    } finally {
+      setSavingDelivery(false);
     }
   };
 
@@ -109,10 +148,77 @@ function AdminSettings() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button variant="luxe" onClick={save} disabled={saving}>
-            {saving
+          <Button variant="luxe" onClick={saveRate} disabled={savingRate}>
+            {savingRate
               ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement…</>
               : <><Save className="mr-2 h-4 w-4" /> Enregistrer le taux</>}
+          </Button>
+        </div>
+      </section>
+
+      <section className="mt-6 border border-border bg-card p-6 sm:max-w-2xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center border border-gold/40 text-gold">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl">Livraison</h2>
+            <p className="text-xs text-muted-foreground">
+              Frais de livraison à domicile et seuil de gratuité, en gourdes.
+              Modifiables à tout moment ; appliqué aux nouvelles commandes.
+            </p>
+          </div>
+        </div>
+
+        <div className="gold-divider my-5" />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Frais de livraison
+            </span>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step="1"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                className="w-full border border-border bg-background px-3 py-2 text-lg focus:border-gold focus:outline-none"
+              />
+              <span className="font-display text-base text-gold">HTG</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Facturé au client quand il coche « Faire livrer ».
+            </p>
+          </label>
+
+          <label className="block">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Livraison offerte à partir de
+            </span>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step="50"
+                value={threshold}
+                onChange={(e) => setThreshold(e.target.value)}
+                className="w-full border border-border bg-background px-3 py-2 text-lg focus:border-gold focus:outline-none"
+              />
+              <span className="font-display text-base text-gold">HTG</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Sous-total au-dessus duquel les frais passent à 0.
+            </p>
+          </label>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <Button variant="luxe" onClick={saveDelivery} disabled={savingDelivery}>
+            {savingDelivery
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enregistrement…</>
+              : <><Save className="mr-2 h-4 w-4" /> Enregistrer la livraison</>}
           </Button>
         </div>
       </section>

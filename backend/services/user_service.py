@@ -39,7 +39,18 @@ class UserService:
             allowed_category_ids=data.allowed_category_ids,
             role=data.role,
             is_active=data.is_active,
+            commission_pct=float(data.commission_pct) if data.commission_pct is not None else None,
         )
+
+    def set_commission_pct(self, user_id: int, pct: float):
+        target = self.user_repository.get_user_by_id(user_id)
+        if not target:
+            raise NotFoundException(detail=f"User {user_id} not found")
+        if target.role not in ("admin", "super_admin"):
+            raise ForbiddenException(
+                detail="Commission can only be set on admin / super_admin users"
+            )
+        return self.user_repository.set_commission_pct(user_id, pct)
 
     def set_allowed_categories(self, user_id: int, category_ids: list[int]):
         target = self.user_repository.get_user_by_id(user_id)
