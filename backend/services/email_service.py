@@ -31,10 +31,16 @@ def send_email(
     to: str,
     subject: str,
     body_text: str,
+    body_html: str | None = None,
     reply_to: str | None = None,
 ) -> None:
     """
-    Send a plain-text email through the configured SMTP relay.
+    Send an email through the configured SMTP relay.
+
+    `body_text` is mandatory and used as the multipart/alternative
+    plain-text fallback. When `body_html` is provided we attach an HTML
+    alternative so clients that render HTML (most of them) get the rich
+    version while text-only clients still receive a readable message.
 
     Raises EmailNotConfiguredError if SMTP_* settings are missing — callers
     can catch this and surface a softer message to end-users (e.g. fall
@@ -50,6 +56,8 @@ def send_email(
     if reply_to:
         msg["Reply-To"] = reply_to
     msg.set_content(body_text)
+    if body_html:
+        msg.add_alternative(body_html, subtype="html")
 
     if settings.SMTP_USE_SSL:
         with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:

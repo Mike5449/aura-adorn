@@ -28,13 +28,228 @@ from services.email_service import send_email
 from services.moncash_client import MonCashClient, MonCashError
 
 
+def _abs_image_url(raw: Optional[str]) -> str:
+    """Resolve a stored image URL into something an email client can fetch.
+
+    - Already-absolute URLs (`http://`, `https://`, `data:`) are returned as-is.
+    - Backend-hosted paths (`/media/...`) are prefixed with PUBLIC_BASE_URL.
+    - Anything else falls back to a 1×1 transparent gif so the layout doesn't
+      blow up when an image is missing.
+    """
+    if not raw:
+        return "https://boteakelegans.com/transparent.gif"
+    if raw.startswith("http://") or raw.startswith("https://") or raw.startswith("data:"):
+        return raw
+    base = (settings.PUBLIC_BASE_URL or "https://boteakelegans.com").rstrip("/")
+    if raw.startswith("/"):
+        return f"{base}{raw}"
+    return f"{base}/{raw}"
+
+
+def _format_htg(amount) -> str:
+    try:
+        n = Decimal(amount)
+    except Exception:
+        return f"{amount}"
+    # 2 500.00 → 2 500 (no cents on whole HTG amounts; otherwise keep 2 decimals)
+    if n == n.to_integral_value():
+        return f"{int(n):,}".replace(",", " ")
+    return f"{n:,.2f}".replace(",", " ").replace(".", ",")
+
+
+def _build_order_email_html(order: Order) -> str:
+    """
+    Branded HTML receipt. Inline styles only — most email clients strip
+    <style> tags and don't support modern selectors. Tables for layout
+    so Outlook stays happy. Max 600px width.
+    """
+    rows_html = []
+    for it in order.items:
+        opts: list[str] = []
+        if it.size_label:
+            opts.append(f"Taille : <strong>{it.size_label}</strong>")
+        if it.color_label:
+            opts.append(f"Couleur : <strong>{it.color_label}</strong>")
+        opts_html = "<br>".join(opts)
+        line_total = Decimal(it.unit_price) * Decimal(it.quantity)
+        rows_html.append(
+            f"""
+            <tr>
+              <td style="padding:14px 0;border-bottom:1px solid #ECE5DA;vertical-align:top;width:84px;">
+                <img src="{_abs_image_url(it.image_url)}" alt="" width="72" height="72"
+                  style="display:block;width:72px;height:72px;object-fit:cover;border:1px solid #ECE5DA;" />
+              </td>
+              <td style="padding:14px 12px;border-bottom:1px solid #ECE5DA;vertical-align:top;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#2A211C;">
+                <div style="font-weight:600;">{it.product_name}</div>
+                {f'<div style="font-size:12px;color:#7A6F62;margin-top:4px;">{opts_html}</div>' if opts_html else ''}
+                <div style="font-size:12px;color:#7A6F62;margin-top:4px;">Quantité : {it.quantity}</div>
+              </td>
+              <td style="padding:14px 0;border-bottom:1px solid #ECE5DA;vertical-align:top;text-align:right;font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#2A211C;white-space:nowrap;">
+                ${line_total:.2f}
+              </td>
+            </tr>
+            """
+        )
+    items_html = "".join(rows_html) if rows_html else (
+        '<tr><td colspan="3" style="padding:20px;text-align:center;color:#7A6F62;">Aucun article</td></tr>'
+    )
+
+    if order.delivery_requested:
+        if Decimal(order.delivery_fee) > 0:
+            delivery_row = f"""
+            <tr>
+              <td style="padding:6px 0;color:#7A6F62;font-size:14px;">Livraison à domicile</td>
+              <td style="padding:6px 0;text-align:right;font-size:14px;color:#2A211C;">{_format_htg(order.delivery_fee)} {order.currency}</td>
+            </tr>"""
+        else:
+            delivery_row = """
+            <tr>
+              <td style="padding:6px 0;color:#7A6F62;font-size:14px;">Livraison à domicile</td>
+              <td style="padding:6px 0;text-align:right;font-size:14px;color:#2E7D32;">offerte</td>
+            </tr>"""
+    else:
+        delivery_row = """
+        <tr>
+          <td style="padding:6px 0;color:#7A6F62;font-size:14px;">Retrait sur place</td>
+          <td style="padding:6px 0;text-align:right;font-size:14px;color:#7A6F62;">—</td>
+        </tr>"""
+
+    subtotal_str = _format_htg(order.subtotal) if order.subtotal else _format_htg(order.total_amount)
+
+    return f"""<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Commande {order.order_number}</title>
+</head>
+<body style="margin:0;padding:0;background:#FAF6F0;font-family:'Helvetica Neue',Arial,sans-serif;color:#2A211C;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#FAF6F0;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#FFFFFF;border:1px solid #ECE5DA;">
+          <!-- Brand header -->
+          <tr>
+            <td align="center" style="padding:32px 24px 20px 24px;border-bottom:1px solid #ECE5DA;">
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:0.04em;color:#2A211C;">
+                Beauté <span style="color:#A03D33;font-style:italic;">&amp;</span> <span style="font-style:italic;">Élégance</span>
+              </div>
+              <div style="margin-top:6px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#7A6F62;">
+                Bijoux · Parfums · Beauté
+              </div>
+            </td>
+          </tr>
+
+          <!-- Confirmation banner -->
+          <tr>
+            <td style="padding:28px 32px 8px 32px;">
+              <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#A03D33;">
+                Commande confirmée
+              </p>
+              <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;color:#2A211C;">
+                Merci {order.customer_name},
+              </h1>
+              <p style="margin:8px 0 0 0;font-size:14px;line-height:1.5;color:#54483D;">
+                Votre paiement a bien été reçu. Nous préparons votre commande
+                <strong style="color:#2A211C;">#{order.order_number}</strong>
+                avec soin.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Items -->
+          <tr>
+            <td style="padding:20px 32px 0 32px;">
+              <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#7A6F62;">
+                Vos articles
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                {items_html}
+              </table>
+            </td>
+          </tr>
+
+          <!-- Totals -->
+          <tr>
+            <td style="padding:20px 32px 12px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding:6px 0;color:#7A6F62;font-size:14px;">Sous-total</td>
+                  <td style="padding:6px 0;text-align:right;font-size:14px;color:#2A211C;">{subtotal_str} {order.currency}</td>
+                </tr>
+                {delivery_row}
+                <tr>
+                  <td style="padding:14px 0 0 0;border-top:1px solid #ECE5DA;font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#2A211C;">
+                    Total payé
+                  </td>
+                  <td style="padding:14px 0 0 0;border-top:1px solid #ECE5DA;text-align:right;font-family:Georgia,'Times New Roman',serif;font-size:18px;color:#A03D33;">
+                    {_format_htg(order.total_amount)} {order.currency}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Shipping address -->
+          <tr>
+            <td style="padding:8px 32px 24px 32px;">
+              <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#7A6F62;">
+                Adresse de livraison
+              </p>
+              <div style="font-size:14px;line-height:1.5;color:#2A211C;">
+                <strong>{order.customer_name}</strong><br>
+                {order.customer_address}<br>
+                {order.customer_city}<br>
+                <span style="color:#7A6F62;">{order.customer_phone}</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Help -->
+          <tr>
+            <td style="padding:0 32px 24px 32px;">
+              <div style="border-top:1px solid #ECE5DA;padding-top:20px;font-size:13px;line-height:1.6;color:#54483D;">
+                Une question sur votre commande ? Répondez simplement à ce message
+                ou écrivez-nous à
+                <a href="mailto:boteakelegans@boteakelegans.com"
+                   style="color:#A03D33;text-decoration:none;">boteakelegans@boteakelegans.com</a>.
+                Vous pouvez aussi nous joindre sur WhatsApp au
+                <a href="https://wa.me/50934705170" style="color:#A03D33;text-decoration:none;">+509 3470 5170</a>.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:20px 32px 28px 32px;background:#FAF6F0;border-top:1px solid #ECE5DA;">
+              <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#A03D33;">
+                Beauté &amp; Élégance
+              </div>
+              <div style="margin-top:4px;font-size:11px;color:#7A6F62;">
+                Delmas · Port-au-Prince · Haïti
+              </div>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:14px 0 0 0;font-size:11px;color:#7A6F62;">
+          Vous recevez ce message parce qu'une commande a été passée avec votre adresse email.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
 def _send_order_confirmation(order: Order) -> None:
-    """Plain-text receipt sent to the customer once a MonCash payment
-    settles. Best-effort: callers wrap us in a try/except so SMTP issues
-    don't roll back the payment confirmation."""
+    """Branded HTML receipt (with plain-text fallback) sent to the
+    customer once a MonCash payment settles. Best-effort: callers wrap
+    us in a try/except so SMTP issues don't roll back payment status."""
     if not order.customer_email:
         return
 
+    # Plain-text fallback — preserved verbatim for clients that don't
+    # render HTML (and as the multipart/alternative requires it).
     items_lines = []
     for it in order.items:
         bits = [f"  - {it.quantity}× {it.product_name}"]
@@ -42,19 +257,20 @@ def _send_order_confirmation(order: Order) -> None:
             bits.append(f"taille {it.size_label}")
         if it.color_label:
             bits.append(f"couleur {it.color_label}")
-        bits.append(f"({Decimal(it.unit_price)} {order.currency})")
+        bits.append(f"(${Decimal(it.unit_price) * Decimal(it.quantity):.2f})")
         items_lines.append(" — ".join(bits))
     items_text = "\n".join(items_lines) if items_lines else "(aucun article)"
 
-    delivery_line = (
-        f"Livraison : {order.delivery_fee} {order.currency}"
-        if order.delivery_requested and Decimal(order.delivery_fee) > 0
-        else "Livraison : à récupérer sur place"
-        if not order.delivery_requested
-        else "Livraison : offerte"
-    )
+    if order.delivery_requested:
+        delivery_line = (
+            f"Livraison : {order.delivery_fee} {order.currency}"
+            if Decimal(order.delivery_fee) > 0
+            else "Livraison : offerte"
+        )
+    else:
+        delivery_line = "Livraison : à récupérer sur place"
 
-    body = (
+    body_text = (
         f"Bonjour {order.customer_name},\n\n"
         f"Merci pour votre commande chez Beauté & Élégance.\n\n"
         f"Numéro de commande : {order.order_number}\n"
@@ -76,7 +292,8 @@ def _send_order_confirmation(order: Order) -> None:
     send_email(
         to=order.customer_email,
         subject=f"Beauté & Élégance — Commande {order.order_number} confirmée",
-        body_text=body,
+        body_text=body_text,
+        body_html=_build_order_email_html(order),
     )
 
 

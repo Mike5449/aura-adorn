@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     # Where contact-form messages land. Defaults to SMTP_USER if empty.
     CONTACT_TO_EMAIL: str = ""
 
+    # Public base URL of the storefront — used to build absolute image
+    # URLs in transactional emails (email clients can't resolve /media/…).
+    PUBLIC_BASE_URL: str = "https://boteakelegans.com"
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
