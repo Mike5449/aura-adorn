@@ -1,13 +1,16 @@
 import { useCart } from "@/context/CartContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, X } from "lucide-react";
+import { Minus, Plus, Share2, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatUsd } from "@/lib/api-types";
 import { resolveImageUrl } from "@/lib/api";
+import ShareCartDialog from "@/components/ShareCartDialog";
+import { useState } from "react";
 
 export default function CartDrawer() {
   const { items, open, setOpen, setQty, remove, total, keyOf } = useCart();
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -78,10 +81,18 @@ export default function CartDrawer() {
               <Button variant="luxe" size="xl" className="mt-6 w-full" asChild onClick={() => setOpen(false)}>
                 <Link to="/cart">Commander</Link>
               </Button>
+              <button
+                type="button"
+                onClick={() => setShareOpen(true)}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 border border-border bg-transparent px-4 py-2.5 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-gold hover:text-gold"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Partager mon panier
+              </button>
             </div>
           </>
         )}
       </SheetContent>
+      {shareOpen && <ShareCartDialog items={items} onClose={() => setShareOpen(false)} />}
     </Sheet>
   );
 }

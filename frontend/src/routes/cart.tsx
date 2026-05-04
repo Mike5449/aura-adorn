@@ -7,15 +7,25 @@ import {
   computeDeliveryFee,
   formatHtg,
   formatUsd,
+  toProduct,
   usdToHtg,
 } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, MapPin, Minus, Plus, Smartphone, Truck, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Loader2, MapPin, Minus, Plus, Share2, Smartphone, Truck, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { orderApi, resolveImageUrl } from "@/lib/api";
+import { orderApi, productApi, resolveImageUrl } from "@/lib/api";
+import { decodeCart } from "@/lib/cart-share";
+import ShareCartDialog from "@/components/ShareCartDialog";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
+
+const searchSchema = z.object({
+  shared: fallback(z.string(), "").default(""),
+});
 
 export const Route = createFileRoute("/cart")({
+  validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
       { title: "Mon Panier — Beauté & Élégance" },
@@ -44,12 +54,77 @@ const emptyForm: CheckoutForm = {
 };
 
 function CartPage() {
-  const { items, setQty, remove, total, clear, keyOf } = useCart();
+  const { items, setQty, remove, total, clear, add, keyOf } = useCart();
   const { exchangeRate } = useSettings();
+  const search = Route.useSearch();
   const [form, setForm] = useState<CheckoutForm>(emptyForm);
   const [deliveryRequested, setDeliveryRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const navigate = useNavigate();
+  const importedRef = useRef(false);
+
+  // If the URL carries a `shared=…` param (a friend pasted a share link),
+  // decode it once and merge those items into the local cart. We then
+  // strip the param so a refresh doesn't re-import them.
+  useEffect(() => {
+    if (importedRef.current) return;
+    const sharedParam = search.shared;
+    if (!sharedParam) return;
+    importedRef.current = true;
+
+    const decoded = decodeCart(sharedParam);
+    if (decoded.length === 0) {
+      toast.error("Le lien partagé est invalide.");
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "/cart");
+      }
+      return;
+    }
+
+    (async () => {
+      let added = 0;
+      let skipped = 0;
+      for (const entry of decoded) {
+        try {
+          const apiProduct = await productApi.get(entry.p);
+          if (!apiProduct.is_active) { skipped++; continue; }
+          const product = toProduct(apiProduct);
+          const size = entry.s
+            ? apiProduct.sizes?.find((s) => s.id === entry.s)
+            : undefined;
+          const color = entry.c
+            ? apiProduct.colors?.find((c) => c.id === entry.c)
+            : undefined;
+          add(
+            product,
+            entry.q,
+            size?.id,
+            size?.size_label,
+            color?.id,
+            color?.color_label,
+          );
+          added++;
+        } catch {
+          skipped++;
+        }
+      }
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "/cart");
+      }
+      if (added > 0) {
+        toast.success(
+          `Panier partagé chargé — ${added} article${added > 1 ? "s" : ""} ajouté${added > 1 ? "s" : ""}.`,
+        );
+      }
+      if (skipped > 0) {
+        toast.info(
+          `${skipped} article${skipped > 1 ? "s" : ""} indisponible${skipped > 1 ? "s" : ""} ignoré${skipped > 1 ? "s" : ""}.`,
+        );
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.shared]);
 
   const update = (k: keyof CheckoutForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -129,8 +204,22 @@ function CartPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16">
-      <h1 className="text-center font-display text-5xl">Mon Panier</h1>
+      <div className="flex items-center justify-center gap-4">
+        <h1 className="font-display text-4xl sm:text-5xl">Mon Panier</h1>
+        <Button
+          type="button"
+          variant="outlineGold"
+          size="sm"
+          onClick={() => setShareOpen(true)}
+          className="gap-2"
+          aria-label="Partager mon panier"
+        >
+          <Share2 className="h-4 w-4" /> Partager
+        </Button>
+      </div>
       <div className="gold-divider mx-auto mt-6 max-w-xs" />
+
+      {shareOpen && <ShareCartDialog items={items} onClose={() => setShareOpen(false)} />}
 
       <div className="mt-14 grid gap-12 lg:grid-cols-[1fr_400px]">
         <div>
