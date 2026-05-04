@@ -2,7 +2,7 @@
 // Affiché sur toutes les pages depuis __root.tsx.
 
 const WHATSAPP_NUMBER = "50934705170"; // E.164 sans le « + »
-const DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, j'ai une question.";
+const DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, je voudrais discuter d'un produit.";
 
 export default function WhatsAppButton() {
   const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;

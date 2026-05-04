@@ -3,6 +3,7 @@ import appCss from "../styles.css?url";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { SettingsProvider } from "@/context/SettingsContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -51,9 +52,24 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  // Inline script runs before React hydrates so we apply the persisted theme
+  // immediately and avoid a flash of the wrong palette on first paint.
+  const themeBootstrap = `
+    (function () {
+      try {
+        var t = window.localStorage.getItem('maison_theme');
+        if (t === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      } catch (e) {}
+    })();
+  `.trim();
+
   return (
-    <html lang="fr" className="dark">
-      <head><HeadContent /></head>
+    <html lang="fr">
+      <head>
+        <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body>
         {children}
         <Scripts />
@@ -64,19 +80,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <SettingsProvider>
-      <CartProvider>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1"><Outlet /></main>
-          <Footer />
-          <CartDrawer />
-          <WhatsAppButton />
-          <Toaster />
-        </div>
-      </CartProvider>
-      </SettingsProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <CartProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1"><Outlet /></main>
+              <Footer />
+              <CartDrawer />
+              <WhatsAppButton />
+              <Toaster />
+            </div>
+          </CartProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

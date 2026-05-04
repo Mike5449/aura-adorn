@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingCart, Menu, X, Search, Shield, LogOut, LogIn } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, Shield, LogOut, LogIn, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
+import Logo from "@/components/Logo";
 
 const nav = [
   { to: "/", label: "Accueil" },
@@ -16,6 +18,7 @@ const nav = [
 export default function Header() {
   const { count, setOpen } = useCart();
   const { user, logout } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const showAdminLink = ["super_admin", "admin", "manager"].includes(user?.role ?? "");
@@ -23,11 +26,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 whitespace-nowrap">
-          <span className="font-display text-lg tracking-[0.18em] text-foreground sm:text-xl md:text-2xl">
-            Beauté <span className="text-gold">&amp; Élégance</span>
-          </span>
-        </Link>
+        <Logo size="md" />
 
         <nav className="hidden items-center gap-10 md:flex">
           {nav.map((n, i) => (
@@ -56,6 +55,14 @@ export default function Header() {
           <Button variant="ghost" size="icon" className="hidden md:inline-flex text-muted-foreground hover:text-gold" aria-label="Rechercher">
             <Search className="h-4 w-4" />
           </Button>
+          <button
+            onClick={toggleTheme}
+            className="inline-flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-gold"
+            aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+            title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           {user ? (
             <button
               onClick={logout}

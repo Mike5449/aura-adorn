@@ -2,17 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCart } from "@/context/CartContext";
 import { useSettings } from "@/context/SettingsContext";
 import {
-  DELIVERY_CITY,
   DELIVERY_FEE_HTG,
   FREE_DELIVERY_THRESHOLD_HTG,
   computeDeliveryFee,
   formatHtg,
   formatUsd,
-  isDeliveryEligibleCity,
   usdToHtg,
 } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, Loader2, MapPin, Minus, Plus, Smartphone, Truck, X } from "lucide-react";
+import { CheckCircle2, Loader2, MapPin, Minus, Plus, Smartphone, Truck, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { orderApi, resolveImageUrl } from "@/lib/api";
@@ -55,10 +53,6 @@ function CartPage() {
 
   const update = (k: keyof CheckoutForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const cityEligible = useMemo(
-    () => isDeliveryEligibleCity(form.customer_city),
-    [form.customer_city],
-  );
   // `total` is the catalog total in USD (cart stores USD prices).
   const subtotalUsd = total;
   const subtotalHtg = usdToHtg(subtotalUsd, exchangeRate);
@@ -77,12 +71,8 @@ function CartPage() {
 
   const checkout = async () => {
     if (items.length === 0) return;
-    if (!form.customer_name || !form.customer_email || !form.customer_phone || !form.customer_address || !form.customer_city) {
+    if (!form.customer_name || !form.customer_phone || !form.customer_address || !form.customer_city) {
       toast.error("Veuillez remplir tous les champs obligatoires.");
-      return;
-    }
-    if (deliveryRequested && !cityEligible) {
-      toast.error(`La livraison est disponible uniquement à ${DELIVERY_CITY}.`);
       return;
     }
 
@@ -90,7 +80,7 @@ function CartPage() {
     try {
       const order = await orderApi.create({
         customer_name: form.customer_name,
-        customer_email: form.customer_email,
+        customer_email: form.customer_email.trim() || undefined,
         customer_phone: form.customer_phone,
         customer_address: form.customer_address,
         customer_city: form.customer_city,
@@ -239,7 +229,6 @@ function CartPage() {
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   <MapPin className="mr-1 inline h-3 w-3" />
-                  Livraison disponible uniquement à <strong>{DELIVERY_CITY}</strong>.
                   Frais : <strong>{DELIVERY_FEE_HTG} HTG</strong> · Offerte à partir de <strong>{FREE_DELIVERY_THRESHOLD_HTG.toLocaleString("fr-HT")} HTG</strong>.
                 </p>
               </div>
@@ -257,13 +246,6 @@ function CartPage() {
                     Plus que <strong className="text-gold">{formatHtg(amountToFreeDeliveryHtg)}</strong> pour bénéficier de la livraison gratuite.
                   </p>
                 ) : null}
-
-                {form.customer_city && !cityEligible && (
-                  <p className="flex items-start gap-2 text-xs text-amber-400">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    Votre ville (<em>{form.customer_city}</em>) n'est pas desservie. Modifiez le champ « Ville » ci-dessous pour y mettre <strong>{DELIVERY_CITY}</strong>.
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -293,8 +275,14 @@ function CartPage() {
             <Field label="Nom complet *">
               <input value={form.customer_name} onChange={(e) => update("customer_name", e.target.value)} className={inputCls} />
             </Field>
-            <Field label="Email *">
-              <input type="email" value={form.customer_email} onChange={(e) => update("customer_email", e.target.value)} className={inputCls} />
+            <Field label="Email (facultatif)">
+              <input
+                type="email"
+                value={form.customer_email}
+                onChange={(e) => update("customer_email", e.target.value)}
+                className={inputCls}
+                placeholder="Pour recevoir la confirmation de commande"
+              />
             </Field>
             <Field label="Téléphone (MonCash) *">
               <input type="tel" value={form.customer_phone} onChange={(e) => update("customer_phone", e.target.value)} placeholder="ex. 509 1234-5678" className={inputCls} />

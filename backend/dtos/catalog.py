@@ -102,6 +102,7 @@ class ProductSizeResponse(ProductSizeBase):
 class ProductColorBase(BaseModel):
     color_label: str = Field(min_length=1, max_length=40)
     hex_code: Optional[str] = Field(default=None, max_length=9)
+    image_url: Optional[str] = Field(default=None, max_length=500)
     stock: int = Field(ge=0, default=0)
     is_active: bool = True
 

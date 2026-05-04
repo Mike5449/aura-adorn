@@ -22,7 +22,10 @@ class OrderItemCreate(BaseModel):
 
 class OrderCreate(BaseModel):
     customer_name: str = Field(min_length=1, max_length=150)
-    customer_email: EmailStr
+    # Email is now optional — if the customer provides it, we send them a
+    # confirmation email after the order is paid. Phone (MonCash) is the
+    # canonical identifier and stays mandatory.
+    customer_email: Optional[EmailStr] = None
     customer_phone: str = Field(min_length=4, max_length=40)
     customer_address: str = Field(min_length=1, max_length=300)
     customer_city: str = Field(min_length=1, max_length=120)

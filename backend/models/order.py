@@ -36,7 +36,7 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     customer_name = Column(String(150), nullable=False)
-    customer_email = Column(String(255), nullable=False)
+    customer_email = Column(String(255), nullable=True)
     customer_phone = Column(String(40), nullable=False)
     customer_address = Column(String(300), nullable=False)
     customer_city = Column(String(120), nullable=False)

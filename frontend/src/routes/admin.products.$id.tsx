@@ -20,6 +20,7 @@ interface SizeRow {
 interface ColorRow {
   color_label: string;
   hex_code: string;
+  image_url: string;
   stock: number;
   is_active: boolean;
 }
@@ -83,6 +84,7 @@ function fromApi(p: ApiProduct): FormState {
     colors: (p.colors ?? []).map((c: ApiProductColor) => ({
       color_label: c.color_label,
       hex_code: c.hex_code ?? "#000000",
+      image_url: c.image_url ?? "",
       stock: c.stock,
       is_active: c.is_active,
     })),
@@ -109,16 +111,21 @@ function AdminProductForm() {
     return new Set((user.allowed_categories ?? []).map((c) => c.id));
   }, [isSuperAdmin, user]);
 
-  const handleFile = async (file: File | null | undefined) => {
-    if (!file) return;
+  const validateImageFile = (file: File | null | undefined): file is File => {
+    if (!file) return false;
     if (!file.type.startsWith("image/")) {
       toast.error("Le fichier doit être une image (JPEG, PNG, WebP, GIF).");
-      return;
+      return false;
     }
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image trop lourde — 5 Mo maximum.");
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleFile = async (file: File | null | undefined) => {
+    if (!validateImageFile(file)) return;
     setUploading(true);
     try {
       const { url } = await mediaApi.upload(file);
@@ -128,6 +135,20 @@ function AdminProductForm() {
       toast.error(e?.message ?? "Échec de l'upload");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleColorFile = async (idx: number, file: File | null | undefined) => {
+    if (!validateImageFile(file)) return;
+    try {
+      const { url } = await mediaApi.upload(file);
+      setForm((f) => ({
+        ...f,
+        colors: f.colors.map((c, i) => (i === idx ? { ...c, image_url: url } : c)),
+      }));
+      toast.success("Image de la couleur téléversée");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Échec de l'upload");
     }
   };
 
@@ -168,7 +189,7 @@ function AdminProductForm() {
   const addColor = () =>
     setForm((f) => ({
       ...f,
-      colors: [...f.colors, { color_label: "", hex_code: "#000000", stock: 0, is_active: true }],
+      colors: [...f.colors, { color_label: "", hex_code: "#000000", image_url: "", stock: 0, is_active: true }],
     }));
 
   const updateColor = (i: number, k: keyof ColorRow, v: any) =>
@@ -236,6 +257,7 @@ function AdminProductForm() {
             .map((c) => ({
               color_label: c.color_label.trim(),
               hex_code: c.hex_code || null,
+              image_url: c.image_url.trim() || null,
               stock: Number(c.stock) || 0,
               is_active: c.is_active,
             }))
@@ -457,60 +479,116 @@ function AdminProductForm() {
                 <strong>pastille</strong> et son <strong>stock</strong>.
                 Le client la verra sous forme de pastille cliquable sur la fiche produit.
               </p>
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-4">
                 {form.colors.map((c, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-1 gap-3 border border-border/60 p-3 sm:grid-cols-[auto_1fr_120px_auto_auto] sm:items-end"
-                  >
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Pastille</span>
-                      <input
-                        type="color"
-                        value={c.hex_code || "#000000"}
-                        onChange={(e) => updateColor(i, "hex_code", e.target.value)}
-                        className="h-9 w-14 cursor-pointer border border-border bg-background"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                        Nom de la couleur *
-                      </span>
-                      <input
-                        required={form.has_colors}
-                        placeholder="Ex. Rouge, Bleu marine, Noir…"
-                        value={c.color_label}
-                        onChange={(e) => updateColor(i, "color_label", e.target.value)}
-                        className={input}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Stock</span>
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="0"
-                        value={c.stock}
-                        onChange={(e) => updateColor(i, "stock", Number(e.target.value))}
-                        className={input}
-                      />
-                    </label>
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-xs sm:pb-2">
-                      <input
-                        type="checkbox"
-                        checked={c.is_active}
-                        onChange={(e) => updateColor(i, "is_active", e.target.checked)}
-                      />
-                      Actif
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => removeColor(i)}
-                      className="self-end justify-self-end text-muted-foreground hover:text-destructive sm:pb-2"
-                      aria-label="Supprimer cette couleur"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <div key={i} className="space-y-3 border border-border/60 p-3">
+                    {/* Row 1: pastille + nom + stock + actif + delete */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr_120px_auto_auto] sm:items-end">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Pastille</span>
+                        <input
+                          type="color"
+                          value={c.hex_code || "#000000"}
+                          onChange={(e) => updateColor(i, "hex_code", e.target.value)}
+                          className="h-9 w-14 cursor-pointer border border-border bg-background"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                          Nom de la couleur *
+                        </span>
+                        <input
+                          required={form.has_colors}
+                          placeholder="Ex. Rouge, Bleu marine, Noir…"
+                          value={c.color_label}
+                          onChange={(e) => updateColor(i, "color_label", e.target.value)}
+                          className={input}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Stock</span>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={c.stock}
+                          onChange={(e) => updateColor(i, "stock", Number(e.target.value))}
+                          className={input}
+                        />
+                      </label>
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-xs sm:pb-2">
+                        <input
+                          type="checkbox"
+                          checked={c.is_active}
+                          onChange={(e) => updateColor(i, "is_active", e.target.checked)}
+                        />
+                        Actif
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeColor(i)}
+                        className="self-end justify-self-end text-muted-foreground hover:text-destructive sm:pb-2"
+                        aria-label="Supprimer cette couleur"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Row 2: photo of the product in this colour */}
+                    <div className="flex items-start gap-3 border-t border-border/40 pt-3">
+                      {c.image_url ? (
+                        <img
+                          src={resolveImageUrl(c.image_url)}
+                          alt={c.color_label || "Aperçu"}
+                          className="h-20 w-20 shrink-0 border border-border object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-dashed border-border text-muted-foreground">
+                          <ImageUp className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div className="flex flex-1 flex-col gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                          Photo du produit dans cette couleur (facultatif)
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outlineGold"
+                            size="sm"
+                            onClick={() => {
+                              const inp = document.createElement("input");
+                              inp.type = "file";
+                              inp.accept = "image/*";
+                              inp.onchange = () => handleColorFile(i, inp.files?.[0]);
+                              inp.click();
+                            }}
+                          >
+                            <Upload className="mr-2 h-3.5 w-3.5" /> Téléverser
+                          </Button>
+                          {c.image_url && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateColor(i, "image_url", "")}
+                            >
+                              Retirer
+                            </Button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={c.image_url}
+                          onChange={(e) => updateColor(i, "image_url", e.target.value)}
+                          placeholder="ou collez une URL"
+                          className={input}
+                        />
+                        <p className="text-[10px] leading-relaxed text-muted-foreground">
+                          Si renseignée, cette image remplacera la photo principale dès que le client choisit cette couleur sur la fiche produit.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
                 <Button type="button" variant="outlineGold" size="sm" onClick={addColor}>

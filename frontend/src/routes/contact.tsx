@@ -13,7 +13,7 @@ const PHONE_RAW = "50934705170";              // E.164 sans le « + », pour wa.
 const PHONE_DISPLAY = "+509 3470 5170";       // affichage humain
 const EMAIL = "boteakelegans@boteakelegans.com";
 const ADDRESS = "Delmas, Port-au-Prince, Haïti";
-const WA_DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, j'ai une question.";
+const WA_DEFAULT_MESSAGE = "Bonjour Beauté & Élégance, je voudrais discuter d'un produit.";
 
 const waLink = (msg = WA_DEFAULT_MESSAGE) =>
   `https://wa.me/${PHONE_RAW}?text=${encodeURIComponent(msg)}`;

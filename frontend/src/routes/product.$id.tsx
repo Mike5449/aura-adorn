@@ -99,7 +99,19 @@ function ProductPage() {
 
       <div className="mt-10 grid gap-12 lg:grid-cols-2">
         <div className="relative bg-onyx">
-          <img src={resolveImageUrl(product.image)} alt={product.name} width={800} height={800} className="h-full w-full object-cover" />
+          {(() => {
+            const selectedColor = availableColors.find((c) => c.id === colorId);
+            const displayImage = selectedColor?.image_url || product.image;
+            return (
+              <img
+                src={resolveImageUrl(displayImage)}
+                alt={selectedColor ? `${product.name} — ${selectedColor.color_label}` : product.name}
+                width={800}
+                height={800}
+                className="h-full w-full object-cover transition-opacity duration-300"
+              />
+            );
+          })()}
           {comingSoon && (
             <span className="absolute left-4 top-4 inline-flex items-center gap-2 border border-gold/60 bg-background/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-gold">
               <Hourglass className="h-3.5 w-3.5" /> À venir
@@ -158,9 +170,10 @@ function ProductPage() {
                         disabled={oos || comingSoon}
                         onClick={() => setColorId(c.id)}
                         title={oos ? `${c.color_label} — rupture de stock` : `${c.color_label} (${c.stock} dispo)`}
-                        className={`flex items-center gap-2 border px-3 py-2 text-sm transition-colors ${
+                        aria-pressed={selected}
+                        className={`flex items-center gap-2 border px-3 py-2 text-sm transition-all ${
                           selected
-                            ? "border-gold ring-2 ring-gold/40"
+                            ? "border-gold bg-gold/10 ring-2 ring-gold/40"
                             : oos
                               ? "cursor-not-allowed border-border/40 opacity-50 line-through"
                               : "border-border hover:border-gold"
@@ -171,7 +184,7 @@ function ProductPage() {
                           style={{ backgroundColor: c.hex_code ?? "transparent" }}
                           aria-hidden
                         />
-                        <span>{c.color_label}</span>
+                        <span className={selected ? "font-medium" : ""}>{c.color_label}</span>
                       </button>
                     );
                   })}

@@ -24,7 +24,60 @@ from models.order import (
 from repositories.catalog_repository import ProductRepository
 from repositories.order_repository import OrderRepository, PaymentRepository
 from repositories.setting_repository import SettingRepository
+from services.email_service import send_email
 from services.moncash_client import MonCashClient, MonCashError
+
+
+def _send_order_confirmation(order: Order) -> None:
+    """Plain-text receipt sent to the customer once a MonCash payment
+    settles. Best-effort: callers wrap us in a try/except so SMTP issues
+    don't roll back the payment confirmation."""
+    if not order.customer_email:
+        return
+
+    items_lines = []
+    for it in order.items:
+        bits = [f"  - {it.quantity}× {it.product_name}"]
+        if it.size_label:
+            bits.append(f"taille {it.size_label}")
+        if it.color_label:
+            bits.append(f"couleur {it.color_label}")
+        bits.append(f"({Decimal(it.unit_price)} {order.currency})")
+        items_lines.append(" — ".join(bits))
+    items_text = "\n".join(items_lines) if items_lines else "(aucun article)"
+
+    delivery_line = (
+        f"Livraison : {order.delivery_fee} {order.currency}"
+        if order.delivery_requested and Decimal(order.delivery_fee) > 0
+        else "Livraison : à récupérer sur place"
+        if not order.delivery_requested
+        else "Livraison : offerte"
+    )
+
+    body = (
+        f"Bonjour {order.customer_name},\n\n"
+        f"Merci pour votre commande chez Beauté & Élégance.\n\n"
+        f"Numéro de commande : {order.order_number}\n"
+        f"Statut : payée\n\n"
+        f"Articles :\n{items_text}\n\n"
+        f"Sous-total : {order.subtotal} {order.currency}\n"
+        f"{delivery_line}\n"
+        f"Total payé : {order.total_amount} {order.currency}\n\n"
+        f"Adresse de livraison :\n"
+        f"  {order.customer_address}\n"
+        f"  {order.customer_city}\n\n"
+        "Nous préparons votre commande. Vous recevrez un nouveau message "
+        "lorsqu'elle sera expédiée.\n\n"
+        "Pour toute question, écrivez à boteakelegans@boteakelegans.com "
+        "ou répondez à ce message.\n\n"
+        "— L'équipe Beauté & Élégance"
+    )
+
+    send_email(
+        to=order.customer_email,
+        subject=f"Beauté & Élégance — Commande {order.order_number} confirmée",
+        body_text=body,
+    )
 
 
 class OutOfStockException(BaseAPIException):
@@ -118,13 +171,8 @@ class OrderService:
 
         delivery_fee = Decimal("0")
         if data.delivery_requested:
-            if not _is_delivery_eligible_city(data.customer_city):
-                raise DeliveryUnavailableException(
-                    detail=(
-                        "La livraison est disponible uniquement à "
-                        f"{settings.DELIVERY_CITY_KEYWORD.capitalize()}."
-                    )
-                )
+            # Delivery is now offered in any city. The flat fee + free-delivery
+            # threshold still apply globally.
             delivery_fee = _compute_delivery_fee(subtotal_htg)
 
         total_htg = subtotal_htg + delivery_fee
@@ -387,7 +435,7 @@ class OrderService:
                 if item.product_color_id is not None:
                     self.product_repo.decrement_color_stock(item.product_color_id, item.quantity)
 
-            return self.repo.update_fields(
+            updated = self.repo.update_fields(
                 order.id,
                 {
                     "status": ORDER_STATUS_PAID,
@@ -395,6 +443,19 @@ class OrderService:
                     "payment_reference": transaction_id,
                 },
             )
+
+            # Best-effort email receipt to the customer. Never let an SMTP
+            # error roll back the payment confirmation — we log and move on.
+            if updated and updated.customer_email:
+                try:
+                    _send_order_confirmation(updated)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception(
+                        "Failed to send order confirmation email for %s", updated.order_number
+                    )
+
+            return updated
         else:
             return self.repo.update_fields(
                 order.id,

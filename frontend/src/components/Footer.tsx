@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, Twitter } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function Footer() {
   return (
@@ -7,9 +8,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-4">
           <div>
-            <span className="font-display text-2xl tracking-[0.18em]">
-              Beauté <span className="text-gold">&amp; Élégance</span>
-            </span>
+            <Logo size="md" asLink={false} />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
               Bijoux, maquillage et soin de la peau. La Beauté pour révéler, l'Élégance pour affirmer — l'art complet de se mettre en valeur.
             </p>

@@ -149,6 +149,10 @@ class ProductColor(Base):
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
     color_label = Column(String(40), nullable=False)        # "Bleu marine", "Rouge"
     hex_code = Column(String(9), nullable=True)             # "#1A2B3C" — for swatches
+    # Optional photo of the product in this specific colour. When set, the
+    # storefront swaps the main product image for this one as soon as the
+    # customer picks the colour. Falls back to Product.image_url otherwise.
+    image_url = Column(String(500), nullable=True)
     stock = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 

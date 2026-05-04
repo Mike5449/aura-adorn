@@ -57,14 +57,54 @@
 
 :root {
   --radius: 0.25rem;
-  /* Luxury black & gold palette */
+  /* Editorial light palette — warm cream, charcoal text, bordeaux as the single accent.
+     The red is a sophisticated warm bordeaux/brick (closer to "rouge à lèvres") rather
+     than cardinal — it reads as luxurious, not as a warning. */
+  --background: oklch(0.985 0.008 35);          /* #FAF6F0 — soft warm cream */
+  --foreground: oklch(0.27 0.008 60);           /* #2D2823 — warm charcoal */
+  --card: oklch(1 0 0);                          /* pure white cards detach from the cream bg */
+  --card-foreground: oklch(0.27 0.008 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.27 0.008 60);
+  --primary: oklch(0.45 0.16 22);                /* warm bordeaux ~ #A03D33 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.006 60);
+  --secondary-foreground: oklch(0.27 0.008 60);
+  --muted: oklch(0.96 0.004 60);
+  --muted-foreground: oklch(0.5 0.01 50);
+  --accent: oklch(0.45 0.16 22);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.91 0.008 50);                /* warm-grey divider */
+  --input: oklch(0.99 0.003 60);
+  --ring: oklch(0.45 0.16 22);
+
+  /* Re-route gold tokens to bordeaux so existing utility classes (text-gold, border-gold,
+     bg-gold) keep working but now render the new accent — cheap re-skin. */
+  --gold: oklch(0.45 0.16 22);
+  --gold-soft: oklch(0.6 0.14 20);
+  --gold-deep: oklch(0.36 0.13 18);
+  --onyx: oklch(0.18 0.005 60);
+
+  --gradient-gold: linear-gradient(135deg, oklch(0.55 0.18 22), oklch(0.45 0.16 22), oklch(0.36 0.13 18));
+  --gradient-dark: linear-gradient(180deg, oklch(0.18 0.005 60), oklch(0.27 0.008 60));
+  --shadow-gold: 0 14px 40px -16px oklch(0.45 0.16 22 / 0.22);
+  --shadow-luxe: 0 12px 30px -10px oklch(0 0 0 / 0.06);
+}
+
+/* Dark theme — original luxury black & gold palette.
+   Activated by adding the `.dark` class on <html>; ThemeContext does that. */
+.dark {
+  color-scheme: dark;
+
   --background: oklch(0.13 0.005 60);
   --foreground: oklch(0.96 0.01 80);
   --card: oklch(0.16 0.006 60);
   --card-foreground: oklch(0.96 0.01 80);
   --popover: oklch(0.16 0.006 60);
   --popover-foreground: oklch(0.96 0.01 80);
-  --primary: oklch(0.78 0.13 82);              /* champagne gold */
+  --primary: oklch(0.78 0.13 82);
   --primary-foreground: oklch(0.12 0.005 60);
   --secondary: oklch(0.22 0.008 60);
   --secondary-foreground: oklch(0.96 0.01 80);
@@ -89,8 +129,6 @@
   --shadow-luxe: 0 30px 80px -30px oklch(0 0 0 / 0.8);
 }
 
-.dark { color-scheme: dark; }
-
 @layer base {
   * { border-color: var(--color-border); }
   html { scroll-behavior: smooth; }
@@ -99,10 +137,63 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    position: relative;
+  }
+
+  /* Light theme — two soft bordeaux halos that breathe slowly. They sit
+     behind everything via fixed positioning + pointer-events:none, so they
+     never block clicks. Opacity stays low (8-10%) so content is never
+     fighting them for attention. */
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  body::before {
+    top: -15%;
+    left: -10%;
+    width: 55vmax;
+    height: 55vmax;
+    background: radial-gradient(circle, oklch(0.7 0.14 22 / 0.55), transparent 70%);
+    animation: drift-a 28s ease-in-out infinite;
+  }
+  body::after {
+    bottom: -20%;
+    right: -15%;
+    width: 60vmax;
+    height: 60vmax;
+    background: radial-gradient(circle, oklch(0.65 0.12 18 / 0.45), transparent 70%);
+    animation: drift-b 36s ease-in-out infinite;
+  }
+  /* Halos visible on light theme only — dark theme keeps its own treatment. */
+  html:not(.dark) body::before,
+  html:not(.dark) body::after {
+    opacity: 0.18;
+  }
+
+  /* Dark theme: subtle radial halo to give the page that luxury depth */
+  .dark body {
     background-image:
       radial-gradient(ellipse at top, oklch(0.18 0.01 70 / 0.6), transparent 60%),
       radial-gradient(ellipse at bottom, oklch(0.15 0.008 70 / 0.4), transparent 60%);
   }
+
+  @keyframes drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%     { transform: translate(8%, 6%) scale(1.08); }
+  }
+  @keyframes drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%     { transform: translate(-6%, -4%) scale(0.94); }
+  }
+
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
 }
 

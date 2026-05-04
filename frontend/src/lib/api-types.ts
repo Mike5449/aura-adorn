@@ -25,6 +25,7 @@ export interface ApiProductColor {
   id: number;
   color_label: string;
   hex_code: string | null;
+  image_url: string | null;
   stock: number;
   is_active: boolean;
 }

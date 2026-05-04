@@ -174,7 +174,7 @@ function Index() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               { Icon: Sparkles, title: "Qualité Premium", desc: "Pièces finies à la main et formules haut de gamme uniquement." },
-              { Icon: ShieldCheck, title: "Vous Met en Valeur", desc: "Des pièces choisies pour révéler votre style et magnifier votre présence." },
+              { Icon: ShieldCheck, title: "Vous Mettre en Valeur", desc: "Des pièces choisies pour révéler votre style et magnifier votre présence." },
               { Icon: Truck, title: "Livraison à Domicile", desc: "Livraison rapide à Delmas, soigneusement emballée jusqu'à votre porte." },
               { Icon: Lock, title: "Paiement MonCash", desc: "Réglez en toute simplicité depuis votre compte MonCash Digicel." },
             ].map(({ Icon, title, desc }) => (
