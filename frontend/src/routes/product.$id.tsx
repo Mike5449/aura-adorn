@@ -123,11 +123,15 @@ function ProductPage() {
           <span className="text-xs uppercase tracking-[0.3em] text-gold">{product.categoryName ?? product.category}</span>
           <h1 className="mt-3 font-display text-4xl md:text-5xl">{product.name}</h1>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2">
             <p className="text-2xl text-gold">{formatUsd(product.price * qty)}</p>
-            {qty > 1 && (
+            {qty > 1 ? (
               <span className="text-xs text-muted-foreground">
-                {formatUsd(product.price)} × {qty}
+                {formatUsd(product.price)} <span className="uppercase tracking-widest">/ unité</span> × {qty}
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                / unité
               </span>
             )}
             {comingSoon ? (
@@ -140,6 +144,17 @@ function ProductPage() {
               </span>
             )}
           </div>
+
+          {/* Per-unit notice — many product photos show 2-3 pieces stacked
+              for the visual; we make it explicit so the customer doesn't
+              think the displayed price covers everything in the photo. */}
+          <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+            <span className="select-none text-gold">ⓘ</span>
+            <span>
+              Le prix affiché est <strong className="text-foreground">pour une seule pièce</strong>.
+              Si vous en voulez plusieurs, ajustez la quantité ci-dessous avant d'ajouter au panier.
+            </span>
+          </p>
 
           <div className="gold-divider my-8" />
           <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
