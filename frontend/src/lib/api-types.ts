@@ -45,6 +45,9 @@ export interface ApiProduct {
   is_active: boolean;
   has_sizes: boolean;
   has_colors: boolean;
+  /** When true, the storefront tags the price as "per unit" — useful
+   *  when the product photo packs several pieces in the same shot. */
+  image_shows_multiple: boolean;
   stock: number;
   sizes: ApiProductSize[];
   colors: ApiProductColor[];
@@ -184,6 +187,8 @@ export interface Product {
   sizes: ApiProductSize[];
   hasColors: boolean;
   colors: ApiProductColor[];
+  /** Admin opted in: photo packs multiple units, show "/ unité" badge */
+  imageShowsMultiple: boolean;
   stock: number;
 }
 
@@ -207,6 +212,7 @@ export function toProduct(p: ApiProduct, categories?: ApiCategory[]): Product {
     sizes: p.sizes ?? [],
     hasColors: p.has_colors ?? false,
     colors: p.colors ?? [],
+    imageShowsMultiple: p.image_shows_multiple ?? false,
     stock: p.stock,
   };
 }

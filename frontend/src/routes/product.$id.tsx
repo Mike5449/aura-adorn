@@ -127,12 +127,19 @@ function ProductPage() {
             <p className="text-2xl text-gold">{formatUsd(product.price * qty)}</p>
             {qty > 1 ? (
               <span className="text-xs text-muted-foreground">
-                {formatUsd(product.price)} <span className="uppercase tracking-widest">/ unité</span> × {qty}
+                {formatUsd(product.price)}
+                {product.imageShowsMultiple && (
+                  <span className="uppercase tracking-widest"> / unité</span>
+                )}
+                {" × "}
+                {qty}
               </span>
             ) : (
-              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                / unité
-              </span>
+              product.imageShowsMultiple && (
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  / unité
+                </span>
+              )
             )}
             {comingSoon ? (
               <span className="border border-gold/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-gold">
@@ -145,16 +152,19 @@ function ProductPage() {
             )}
           </div>
 
-          {/* Per-unit notice — many product photos show 2-3 pieces stacked
-              for the visual; we make it explicit so the customer doesn't
-              think the displayed price covers everything in the photo. */}
-          <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
-            <span className="select-none text-gold">ⓘ</span>
-            <span>
-              Le prix affiché est <strong className="text-foreground">pour une seule pièce</strong>.
-              Si vous en voulez plusieurs, ajustez la quantité ci-dessous avant d'ajouter au panier.
-            </span>
-          </p>
+          {/* Per-unit notice — opt-in per product. The admin marks the
+              flag when the photo packs several units; we then explain
+              the price covers a single piece. Skipped otherwise to
+              avoid noise on products where the photo is unambiguous. */}
+          {product.imageShowsMultiple && (
+            <p className="mt-3 inline-flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+              <span className="select-none text-gold">ⓘ</span>
+              <span>
+                Le prix affiché est <strong className="text-foreground">pour une seule pièce</strong>.
+                Si vous en voulez plusieurs, ajustez la quantité ci-dessous avant d'ajouter au panier.
+              </span>
+            </p>
+          )}
 
           <div className="gold-divider my-8" />
           <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>

@@ -135,6 +135,7 @@ class ProductBase(BaseModel):
     is_active: bool = True
     has_sizes: bool = False
     has_colors: bool = False
+    image_shows_multiple: bool = False
     stock: int = Field(ge=0, default=0)
 
     @field_validator("slug")
@@ -170,6 +171,7 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     has_sizes: Optional[bool] = None
     has_colors: Optional[bool] = None
+    image_shows_multiple: Optional[bool] = None
     stock: Optional[int] = Field(default=None, ge=0)
     sizes: Optional[List[ProductSizeCreate]] = None
     colors: Optional[List[ProductColorCreate]] = None
@@ -204,6 +206,7 @@ class ProductResponse(BaseModel):
     is_active: bool
     has_sizes: bool
     has_colors: bool = False
+    image_shows_multiple: bool = False
     stock: int
     sizes: List[ProductSizeResponse] = []
     colors: List[ProductColorResponse] = []

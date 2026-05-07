@@ -92,17 +92,19 @@ export default function ProductCard({ product }: { product: Product }) {
             )}
           </div>
 
-          {/* Price — overlaid on bottom-right of the image. Always followed by
-              "/ unité" so the customer never confuses the unit price with the
-              total of however many items appear in the photo. */}
+          {/* Price — overlaid on bottom-right of the image. The "/ unité"
+              suffix appears only when the admin marked this product as
+              having multiple units in the photo. */}
           <span
             className="absolute bottom-2 right-2 z-10 inline-flex items-baseline gap-1 rounded-sm bg-background/85 px-2.5 py-1 text-sm font-semibold text-gold shadow-md backdrop-blur-sm sm:bottom-3 sm:right-3 sm:text-base"
-            title="Prix par unité"
+            title={product.imageShowsMultiple ? "Prix par unité" : undefined}
           >
             {formatUsd(product.price)}
-            <span className="text-[9px] font-normal uppercase tracking-widest text-muted-foreground sm:text-[10px]">
-              / unité
-            </span>
+            {product.imageShowsMultiple && (
+              <span className="text-[9px] font-normal uppercase tracking-widest text-muted-foreground sm:text-[10px]">
+                / unité
+              </span>
+            )}
           </span>
         </Link>
 

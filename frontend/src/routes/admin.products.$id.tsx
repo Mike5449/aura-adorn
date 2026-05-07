@@ -38,6 +38,7 @@ interface FormState {
   is_active: boolean;
   has_sizes: boolean;
   has_colors: boolean;
+  image_shows_multiple: boolean;
   stock: number;
   sizes: SizeRow[];
   colors: ColorRow[];
@@ -56,6 +57,7 @@ const empty: FormState = {
   is_active: true,
   has_sizes: false,
   has_colors: false,
+  image_shows_multiple: false,
   stock: 0,
   sizes: [],
   colors: [],
@@ -75,6 +77,7 @@ function fromApi(p: ApiProduct): FormState {
     is_active: p.is_active,
     has_sizes: p.has_sizes,
     has_colors: p.has_colors ?? false,
+    image_shows_multiple: p.image_shows_multiple ?? false,
     stock: p.stock,
     sizes: p.sizes.map((s: ApiProductSize) => ({
       size_label: s.size_label,
@@ -241,6 +244,7 @@ function AdminProductForm() {
       is_active: form.is_active,
       has_sizes: form.has_sizes,
       has_colors: form.has_colors,
+      image_shows_multiple: form.image_shows_multiple,
       stock: Number(form.stock) || 0,
       sizes: form.has_sizes
         ? form.sizes
@@ -704,6 +708,18 @@ function AdminProductForm() {
               checked={form.has_colors}
               onChange={(v) => set("has_colors", v)}
             />
+            <Toggle
+              label="L'image montre plusieurs unités du produit"
+              checked={form.image_shows_multiple}
+              onChange={(v) => set("image_shows_multiple", v)}
+            />
+            {form.image_shows_multiple && (
+              <p className="-mt-1 ml-7 text-[11px] leading-snug text-muted-foreground">
+                Le client verra <strong className="text-foreground">« / unité »</strong> à
+                côté du prix et un message lui rappelant que le prix affiché
+                est pour une seule pièce.
+              </p>
+            )}
 
             {!form.has_sizes && (
               <Field label="Stock total">

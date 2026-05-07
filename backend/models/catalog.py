@@ -86,6 +86,12 @@ class Product(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     has_sizes = Column(Boolean, default=False, nullable=False)
     has_colors = Column(Boolean, default=False, nullable=False)
+    # When the product photo packs several units in the same shot
+    # (jewelry stack, perfume duo, swimwear set), we show an explicit
+    # "Prix par unité" label so the customer doesn't read the price as
+    # the total for everything in the photo. Off by default — admin
+    # opts in per product.
+    image_shows_multiple = Column(Boolean, default=False, nullable=False, server_default="false")
     stock = Column(Integer, default=0, nullable=False)  # ignored if variants are used
 
     # Owner — the admin who created the product. Used to scope listing
