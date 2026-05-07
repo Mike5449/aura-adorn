@@ -60,7 +60,12 @@ COPY --from=build /app/server-runner.mjs ./
 
 EXPOSE 3000
 
+# Healthcheck — `wget --spider` issues a HEAD request that the
+# @hono/node-server fetch handler doesn't always answer with 2xx, which
+# leaves the container marked `unhealthy` even when Node is serving
+# normally. Use a real GET, throw away the body, and only the connection
+# + status code matter.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
-    CMD wget -q --spider http://localhost:3000/ || exit 1
+    CMD wget -q -O /dev/null http://localhost:3000/ || exit 1
 
 CMD ["node", "server-runner.mjs"]
