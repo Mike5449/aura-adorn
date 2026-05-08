@@ -24,7 +24,7 @@ export default function Footer() {
           {[
             { title: "Boutique", links: [{ l: "Tous les produits", to: "/shop" }, { l: "Bijoux Homme", to: "/shop" }, { l: "Beauté", to: "/shop" }, { l: "Best-sellers", to: "/shop" }] },
             { title: "Support", links: [{ l: "Nous contacter", to: "/contact" }, { l: "Livraison", to: "/contact" }, { l: "Retours", to: "/contact" }, { l: "FAQ", to: "/contact" }] },
-            { title: "À Propos", links: [{ l: "Notre histoire", to: "/" }, { l: "Engagement", to: "/" }, { l: "Presse", to: "/" }, { l: "Carrières", to: "/" }] },
+            { title: "À Propos", links: [{ l: "Notre histoire", to: "/" }, { l: "Engagement", to: "/" }, { l: "Confidentialité", to: "/privacy" }, { l: "Carrières", to: "/" }] },
           ].map((col) => (
             <div key={col.title}>
               <h4 className="mb-4 text-xs uppercase tracking-[0.25em] text-gold">{col.title}</h4>
@@ -39,9 +39,17 @@ export default function Footer() {
           ))}
         </div>
         <div className="gold-divider mt-16" />
-        <p className="mt-8 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          © {new Date().getFullYear()} Beauté &amp; Élégance — Façonné avec passion
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-3 text-xs text-muted-foreground sm:flex-row sm:justify-center sm:gap-6">
+          <span className="uppercase tracking-[0.2em]">
+            © {new Date().getFullYear()} Beauté &amp; Élégance
+          </span>
+          <Link to="/privacy" className="hover:text-foreground transition-colors">
+            Politique de confidentialité
+          </Link>
+          <Link to="/contact" className="hover:text-foreground transition-colors">
+            Nous contacter
+          </Link>
+        </div>
       </div>
     </footer>
   );
