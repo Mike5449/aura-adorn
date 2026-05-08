@@ -54,9 +54,9 @@ function Index() {
           <span className="animate-[fade-in_0.6s_ease-out] text-xs uppercase tracking-[0.4em] text-gold">
             ◆ Collection Beauté &amp; Élégance 2026
           </span>
-          <h1 className="mt-6 max-w-3xl animate-[fade-up_0.7s_cubic-bezier(0.22,1,0.36,1)] font-display text-5xl font-medium leading-[1.05] md:text-7xl lg:text-8xl">
-            Élevez Votre Style.<br />
-            <span className="shimmer-text italic">Affirmez</span> Votre Présence.
+          <h1 className="mt-6 max-w-3xl animate-[fade-up_0.7s_cubic-bezier(0.22,1,0.36,1)] font-display text-4xl font-light leading-[1.1] tracking-[-0.01em] md:text-6xl lg:text-7xl">
+            <span className="block">Élevez votre style.</span>
+            <span className="block text-[var(--gold-deep)]">Affirmez votre présence.</span>
           </h1>
           <p className="mt-8 max-w-xl animate-[fade-up_0.9s_cubic-bezier(0.22,1,0.36,1)] text-lg leading-relaxed text-muted-foreground">
             Découvrez bijoux pour homme premium et essentiels beauté de luxe. Conçus pour la confiance, dessinés pour l'élégance.
@@ -91,10 +91,10 @@ function Index() {
             >
               <img src={c.img} alt={c.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 md:p-10">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-gold sm:text-xs sm:tracking-[0.3em]">{c.sub}</span>
-                <h3 className="mt-2 font-display text-xl leading-tight sm:mt-3 sm:text-3xl md:text-4xl lg:text-5xl">{c.title}</h3>
-                <span className="mt-3 inline-block border-b border-gold pb-1 text-[10px] uppercase tracking-[0.2em] text-gold transition-all group-hover:tracking-[0.3em] sm:mt-6 sm:text-xs sm:tracking-[0.25em] sm:group-hover:tracking-[0.35em]">
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white sm:p-8 md:p-10">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-white/85 sm:text-xs sm:tracking-[0.3em]">{c.sub}</span>
+                <h3 className="mt-2 font-display text-xl leading-tight text-white sm:mt-3 sm:text-3xl md:text-4xl lg:text-5xl">{c.title}</h3>
+                <span className="mt-3 inline-block border-b border-white/80 pb-1 text-[10px] uppercase tracking-[0.2em] text-white transition-all group-hover:tracking-[0.3em] sm:mt-6 sm:text-xs sm:tracking-[0.25em] sm:group-hover:tracking-[0.35em]">
                   Découvrir →
                 </span>
               </div>
@@ -176,7 +176,7 @@ function Index() {
               { Icon: Sparkles, title: "Qualité Premium", desc: "Pièces finies à la main et formules haut de gamme uniquement." },
               { Icon: ShieldCheck, title: "Vous Mettre en Valeur", desc: "Des pièces choisies pour révéler votre style et magnifier votre présence." },
               { Icon: Truck, title: "Livraison à Domicile", desc: "Livraison rapide à Delmas, soigneusement emballée jusqu'à votre porte." },
-              { Icon: Lock, title: "Paiement MonCash", desc: "Réglez en toute simplicité depuis votre compte MonCash Digicel." },
+              { Icon: Lock, title: "Paiement MonCash", desc: "Réglez en toute simplicité depuis votre compte MonCash." },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center border border-gold/40 text-gold">

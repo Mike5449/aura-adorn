@@ -54,8 +54,8 @@ export default function Logo({ size = "md", asLink = true, className = "" }: Log
       <LogoMark className={`shrink-0 text-[var(--gold)] ${s.mark}`} />
       <span className={`font-display tracking-[0.02em] text-foreground ${s.text}`}>
         <span className="font-medium">Beauté</span>
-        <span className="mx-[0.2em] italic text-[var(--gold)] font-light">&amp;</span>
-        <span className="italic font-light">Élégance</span>
+        <span className="mx-[0.25em] font-light text-foreground/55">&amp;</span>
+        <span className="font-light">Élégance</span>
       </span>
     </span>
   );

@@ -96,7 +96,7 @@ export default function ProductCard({ product }: { product: Product }) {
               suffix appears only when the admin marked this product as
               having multiple units in the photo. */}
           <span
-            className="absolute bottom-2 right-2 z-10 inline-flex items-baseline gap-1 rounded-sm bg-background/85 px-2.5 py-1 text-sm font-semibold text-gold shadow-md backdrop-blur-sm sm:bottom-3 sm:right-3 sm:text-base"
+            className="absolute bottom-2 right-2 z-10 inline-flex items-baseline gap-1 rounded-sm bg-background/40 px-2.5 py-1 text-sm font-semibold text-gold shadow-sm backdrop-blur-md sm:bottom-3 sm:right-3 sm:text-base"
             title={product.imageShowsMultiple ? "Prix par unité" : undefined}
           >
             {formatUsd(product.price)}

@@ -1,10 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingCart, Menu, X, Search, Shield, LogOut, LogIn, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Menu, X, Shield, LogOut, LogIn, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 
 const nav = [
@@ -52,9 +51,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex text-muted-foreground hover:text-gold" aria-label="Rechercher">
-            <Search className="h-4 w-4" />
-          </Button>
           <button
             onClick={toggleTheme}
             className="inline-flex h-9 w-9 items-center justify-center text-muted-foreground transition-colors hover:text-gold"
